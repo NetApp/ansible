@@ -1,0 +1,116 @@
+---
+- name: Create Vserver
+  na_ontap_svm:
+    state: present
+    name: "{{ item.name }}"
+    root_volume: "{{ item.name }}_root"
+    root_volume_aggregate: "{{ item.aggr }}"
+    root_volume_security_style: "{{ 'ntfs' if item.protocol.lower() == 'cifs' else 'unix'}}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    ontapi: "{{ ontap_facts.ontap_version }}"
+    https: true
+    validate_certs: false
+  with_items:
+    "{{ vservers }}"
+  when: vservers != None
+- name: Create Interface
+  na_ontap_interface:
+    state: present
+    interface_name: "{{ item.name }}"
+    home_port: "{{ item.port }}"
+    home_node: "{{ item.node }}"
+    role: data
+    protocols: "{{ item.protocol }}"
+    admin_status: up
+    failover_policy: local-only
+    firewall_policy: "{{ 'data' if item.firewall is not defined else item.firewall }}"
+    is_auto_revert: true
+    address: "{{ item.address }}"
+    netmask: "{{ item.netmask }}"
+    vserver: "{{ item.vserver }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    ontapi: "{{ ontap_facts.ontap_version }}"
+    https: true
+    validate_certs: false
+  with_items:
+    "{{ lifs }}"
+  when: lifs != None
+- name: Create DNS
+  na_ontap_dns:
+    state: present
+    vserver: "{{ item.vserver }}"
+    domains: "{{ item.dns_domains }}"
+    nameservers: "{{ item.dns_nameservers }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    ontapi: "{{ ontap_facts.ontap_version }}"
+    https: true
+    validate_certs: false
+  with_items:
+    "{{ vserver_dns }}"
+  when: vserver_dns !=None
+- name: Create CIFS Server
+  na_ontap_cifs_server:
+    state: present
+    vserver: "{{ item.vserver }}"
+    domain: "{{ item.domain }}"
+    cifs_server_name: "{{ item.cifs_server_name }}"
+    force: "{{ 'false' if item.force is not defined else item.force }}"
+    admin_password: "{{ admin_password }}"
+    admin_user_name: "{{ admin_user_name }}"
+    ou: "{{ item.ou | default(omit) }}"
+    service_state: started
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    ontapi: "{{ ontap_facts.ontap_version }}"
+    https: true
+    validate_certs: false
+  with_items:
+    "{{ cifs }}"
+  when: cifs != None
+- name: Create NFS Server
+  na_ontap_nfs:
+    state: present
+    service_state: started
+    vserver: "{{ item.name }}"
+    nfsv3: enabled
+    nfsv4: disabled
+    nfsv41: disabled
+    tcp: enabled
+    udp: enabled
+    vstorage_state: disabled
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    ontapi: "{{ ontap_facts.ontap_version }}"
+    https: true
+    validate_certs: false
+  with_items:
+    "{{ vservers }}"
+  when:
+    item.protocol is search("nfs") or item.protocol is search("NFS")
+- name: Setup default NFS rule
+  na_ontap_export_policy_rule:
+    state: present
+    policy_name: default
+    vserver: "{{ item.name }}"
+    client_match: 0.0.0.0/0
+    ro_rule: any
+    rw_rule: none
+    protocol: any
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    ontapi: "{{ ontap_facts.ontap_version }}"
+    https: true
+    validate_certs: false
+  with_items:
+    "{{ vservers }}"
+  when:
+    item.protocol is search("nfs") or item.protocol is search("NFS")

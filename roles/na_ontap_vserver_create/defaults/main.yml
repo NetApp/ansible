@@ -1,0 +1,7 @@
+---
+# defaults file for na-ontap-vserver-create
+vservers:
+vserver_dns:
+lifs: 
+cifs:
+nfs:
