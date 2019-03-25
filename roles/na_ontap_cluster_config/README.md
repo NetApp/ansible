@@ -119,7 +119,7 @@ cluster_config.yml
       password: "{{ netapp_password }}"
   tasks:
   - import_role:
-      name: schmots1.na_ontap_cluster_config
+      name: na_ontap_cluster_config
     vars:
       <<: *input
 
