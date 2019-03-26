@@ -13,13 +13,14 @@ Since this uses the NetApp ONTAP modules it will require the python library neta
 
 Role Variables
 --------------
+```
 cluster: <short ONTAP name of cluster>
 hostname: <ONTAP mgmt ip or fqdn>
 username: <ONTAP admin account>
 password: <ONTAP admin account password>
 
 #Based on if Variables != or == None determins if a section runs.  Each variable will take one or more dictonary entries.  Simply omit sections
-that you don't want to run.  The following would run all sections
+#that you don't want to run.  The following would run all sections
 
 vservers: # Vservers to create
   - { name: nfs_vserver, aggr: aggr1, protocol: nfs }
@@ -37,7 +38,7 @@ cifs: # Vservers to join to an AD Domain
 
 fcp: # sets FCP ports as Target
   - { adapter: 0e, node: cluster-01 }
-
+```
 Dependencies
 ------------
 
@@ -46,9 +47,37 @@ The task for na_ontap_gather_facts can not be excluded.
 
 Example Playbook
 ----------------
-
+```
+---
+- hosts: localhost
+  vars_prompt:
+    - name: admin_user_name
+      prompt: domain admin (enter if skipped)
+    - name: admin_password
+      prompt: domain admin password (enter if skipped)
+  vars_files:
+    - globals.yml
+  vars:
+    input: &input
+      hostname: "{{ netapp_hostname }}"
+      username: "{{ netapp_username }}"
+      password: "{{ netapp_password }}"
+  tasks:
+  - name: Get Ontapi version
+    na_ontap_gather_facts:
+      state: info
+      <<: *input
+      https: true
+      ontapi: 32
+      validate_certs: false
+  - import_role:
+      name: na_ontap_vserver_create
+    vars:
+      <<: *input
+```
 I use a globals file to hold my variables.
-
+```
+---
 globals.yml
 cluster_name: cluster
 
@@ -71,10 +100,7 @@ vserver_dns:
 
 cifs:
   - { vserver: cifs_vserver, cifs_server_name: netapp1, domain: openstack.local, force: true }
-
-I then use a simple playbook to call my globals and the role, and prompt for my AD user and password
-
-cluster_config.yml
+```
 ---
 - hosts: localhost
   vars_prompt:
