@@ -92,22 +92,22 @@ netapp_password: netapp123
 license_codes: <removed>
 
 aggrs:
-  - { name: aggr1, node: cluster-01, disk_count: 26, max_raid: 26 }
-  - { name: aggr2, node: cluster-02, disk_count: 26, max_raid: 26 }
+  \- { name: aggr1, node: cluster-01, disk_count: 26, max_raid: 26 }
+  \- { name: aggr2, node: cluster-02, disk_count: 26, max_raid: 26 }
 
 ifgrps:
-  - { name: a0a, node: cluster-01, port: "e0a", mode: multimode }
-  - { name: a0a, node: cluster-02, port: "e0a", mode: multimode }
-  - { name: a0a, node: cluster-01, port: "e0b", mode: multimode }
-  - { name: a0a, node: cluster-02, port: "e0b", mode: multimode }
+  \- { name: a0a, node: cluster-01, port: "e0a", mode: multimode }
+  \- { name: a0a, node: cluster-02, port: "e0a", mode: multimode }
+  \- { name: a0a, node: cluster-01, port: "e0b", mode: multimode }
+  \- { name: a0a, node: cluster-02, port: "e0b", mode: multimode }
 
 inters:
-  - { name: intercluster_1, address: 172.32.0.187, netmask: 255.255.255.0, node: cluster-01, port: e0c }
-  - { name: intercluster_2, address: 172.32.0.188, netmask: 255.255.255.0, node: cluster-02, port: e0c }
+  \- { name: intercluster_1, address: 172.32.0.187, netmask: 255.255.255.0, node: cluster-01, port: e0c }
+  \- { name: intercluster_2, address: 172.32.0.188, netmask: 255.255.255.0, node: cluster-02, port: e0c }
 
 I then use a simple playbook to call my globals and the role.
 
-``cluster_config.yml
+cluster_config.yml
 ---
 - hosts: localhost
   vars_files:
@@ -129,7 +129,7 @@ I then use a simple playbook to call my globals and the role.
       name: na_ontap_cluster_config
     vars:
       <<: *input
-``
+
 License
 -------
 
