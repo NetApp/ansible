@@ -147,7 +147,7 @@
     state: present
     node: "{{ item.node }}"
     port: "{{ item.name }}"
-    mtu: "{{ mtu }}"
+    mtu: "{{ item.mtu }}"
     username: "{{ username }}"
     password: "{{ password }}"
     hostname: "{{ hostname }}"
