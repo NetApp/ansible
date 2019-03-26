@@ -108,6 +108,7 @@ inters:
 I then use a simple playbook to call my globals and the role.
 
 cluster_config.yml
+```
 ---
 - hosts: localhost
   vars_files:
@@ -129,7 +130,7 @@ cluster_config.yml
       name: na_ontap_cluster_config
     vars:
       <<: *input
-
+```
 License
 -------
 
