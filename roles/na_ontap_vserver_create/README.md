@@ -101,32 +101,6 @@ vserver_dns:
 cifs:
   - { vserver: cifs_vserver, cifs_server_name: netapp1, domain: openstack.local, force: true }
 ```
----
-- hosts: localhost
-  vars_prompt:
-    - name: admin_user_name
-      prompt: domain admin (enter if skipped)
-    - name: admin_password
-      prompt: domain admin password (enter if skipped)
-  vars_files:
-    - globals.yml
-  vars:
-    input: &input
-      hostname: "{{ netapp_hostname }}"
-      username: "{{ netapp_username }}"
-      password: "{{ netapp_password }}"
-  tasks:
-  - name: Get Ontapi version
-    na_ontap_gather_facts:
-      state: info
-      <<: *input
-      https: true
-      ontapi: 32
-      validate_certs: false
-  - import_role:
-      name: na_ontap_vserver_create
-    vars:
-      <<: *input
 
 License
 -------
