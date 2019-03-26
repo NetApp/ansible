@@ -23,13 +23,14 @@ Since this uses the NetApp ONTAP modules it will require the python library neta
 
 Role Variables
 --------------
+```
 cluster: <short ONTAP name of cluster>
 hostname: <ONTAP mgmt ip or fqdn>
 username: <ONTAP admin account>
 password: <ONTAP admin account password>
 
-Based on if Variables != or == None determins if a section runs.  Each variable will take one or more dictonary entries.  Simply omit sections
-that you don't want to run.  The following would run all sections
+#Based on if Variables != or == None determins if a section runs.  Each variable will take one or more dictonary entries.  Simply omit sections
+#that you don't want to run.  The following would run all sections
 
 license_codes: AAAAAAAAAAA,AAAAAAAAAAA,AAAAAAAAAAA,AAAAAAAAAAA,AAAAAAAAAAA,AAAAAAAAAAA,AAAAAAAAAAA,AAAAAAAAAAA,AAAAAAAAAAA,AAAAAAAAAAA,AAAAAAAAAAA,AAAAAAAAAAA,AAAAAAAAAAAAAA
 
@@ -70,7 +71,7 @@ bcasts:
 inters:
   - { name: intercluster_1, address: 172.32.0.187, netmask: 255.255.255.0, node: cluster-01, port: e0c }
   - { name: intercluster_2, address: 172.32.0.188, netmask: 255.255.255.0, node: cluster-02, port: e0c }
-
+```
 Dependencies
 ------------
 
