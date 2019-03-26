@@ -107,7 +107,7 @@ inters:
 
 I then use a simple playbook to call my globals and the role.
 
-cluster_config.yml
+``cluster_config.yml
 ---
 - hosts: localhost
   vars_files:
@@ -118,11 +118,18 @@ cluster_config.yml
       username: "{{ netapp_username }}"
       password: "{{ netapp_password }}"
   tasks:
+  - name: Get Ontapi version
+    na_ontap_gather_facts:
+      state: info
+      <<: *input
+      https: true
+      ontapi: 32
+      validate_certs: false
   - import_role:
       name: na_ontap_cluster_config
     vars:
       <<: *input
-
+``
 License
 -------
 
