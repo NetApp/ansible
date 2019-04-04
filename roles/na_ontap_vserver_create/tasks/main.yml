@@ -5,7 +5,7 @@
     name: "{{ item.name }}"
     root_volume: "{{ item.name }}_root"
     root_volume_aggregate: "{{ item.aggr }}"
-    root_volume_security_style: "{{ 'ntfs' if item.protocol.lower() is search("cifs") else 'unix'}}"
+    root_volume_security_style: "{{ 'ntfs' if item.protocol.lower() is search('cifs') else 'unix'}}"
     hostname: "{{ hostname }}"
     username: "{{ username }}"
     password: "{{ password }}"
