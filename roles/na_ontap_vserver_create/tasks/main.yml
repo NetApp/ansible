@@ -135,7 +135,28 @@
   with_items:
     "{{ vservers }}"
   when: 
-    item.protocol.lower() is search("nfs")
+    - item.protocol.lower() is search("nfs")
+    - ontap_facts.ontap_version > "120"
+- name: Create NFS Server
+  na_ontap_nfs:
+    state: present
+    service_state: started
+    vserver: "{{ item.name }}"
+    nfsv3: enabled
+    nfsv4: disabled
+    nfsv41: disabled
+    vstorage_state: disabled
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    ontapi: "{{ ontap_facts.ontap_version }}"
+    https: true
+    validate_certs: false
+  with_items:
+    "{{ vservers }}"
+  when: 
+    - item.protocol.lower() is search("nfs")
+    - ontap_facts.ontap_version < "130"
 - name: Setup default NFS rule
   na_ontap_export_policy_rule:
     state: present
