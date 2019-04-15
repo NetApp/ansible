@@ -104,7 +104,7 @@
     force: "{{ 'false' if item.force is not defined else item.force }}"
     admin_password: "{{ admin_password }}"
     admin_user_name: "{{ admin_user_name }}"
-    ou: "{{ item.ou | default(omit)}}"
+    ou: "{{ item.ou | default(omit) }}"
     service_state: started
     hostname: "{{ hostname }}"
     username: "{{ username }}"
