@@ -12,7 +12,7 @@
     ontapi: "{{ ontap_facts.ontap_version }}"
     https: true
     validate_certs: false
-  loop:
+  with_items:
     "{{ vservers }}"
   when: vservers != None
 - name: Setup FCP
@@ -77,9 +77,24 @@
     ontapi: "{{ ontap_facts.ontap_version }}"
     https: true
     validate_certs: false
-  loop:
+  with_items:
     "{{ lifs }}"
   when: lifs != None
+- name: Add default route
+  na_ontap_net_routes:
+    state: present
+    vserver: "{{ item.vserver }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    hostname: "{{ hostname }}"
+    destination: "{{ item.destination }}"
+    gateway: "{{ item.gateway }}"
+    metric: 30
+    https: true
+    validate_certs: false
+  with_items:
+    "{{ gateway }}"
+  when: gateway != None
 - name: Create DNS
   na_ontap_dns:
     state: present

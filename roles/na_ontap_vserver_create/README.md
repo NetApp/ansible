@@ -33,6 +33,9 @@ lifs: # interfaces for the Vservers being created
   - { name: nfs_vserver_data_lif, vserver: nfs_vserver, node: cluster-01, port: e0c, protocol: nfs, address: 172.32.0.193, netmask: 255.255.255.0 }
   - { name: cifs_vserver_data_lif, vserver: nfs_vserver, node: cluster-01, port: e0c, protocol: nfs, address: 172.32.0.194, netmask: 255.255.255.0 }
 
+gateway: #if a different default route/gateway then the clusters default needs to be added
+  - { vserver: nfs_vserver, destination: 0.0.0.0/0, gateway: 172.32.0.1 }
+
 cifs: # Vservers to join to an AD Domain
   - { vserver: cifs_vserver, cifs_server_name: netapp1, domain: ansible.local, force: true }
 
