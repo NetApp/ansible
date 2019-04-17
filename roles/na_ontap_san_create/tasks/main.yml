@@ -20,7 +20,7 @@
   na_ontap_volume:
     state: present
     name: "{{ item.vol_name }}"
-    aggregate_name: "{{ item.aggregate }}"
+    aggregate_name: "{{ item.aggr }}"
     size: "{{ (item.size | int * 1.05) | round(0, 'ceil') | int }}"
     size_unit: gb
     space_guarantee: none
@@ -33,7 +33,6 @@
     validate_certs: false
   with_items:
     "{{ luns }}"
-  when: Volume_Setup != None
 - name: Lun Create
   na_ontap_lun:
     state: present
@@ -56,8 +55,8 @@
 - name: Create LUN mapping
   na_ontap_lun_map:
     state: present
-    initiator_group_name: "{{ item.igroup}"
-    path: "/vol/{{ item.vol_name }}/{{ item.name }}""
+    initiator_group_name: "{{ item.igroup }}"
+    path: "/vol/{{ item.vol_name }}/{{ item.name }}"
     vserver: "{{ item.vserver }}"
     hostname: "{{ hostname }}"
     username: "{{ username }}"

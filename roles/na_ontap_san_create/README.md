@@ -19,7 +19,7 @@ password: <ONTAP admin account password>
 igroups:
   - { name: igroup1, vserver: san_vserver, group_type: iscsi, ostype: linux, initiator: "<iqn or wwpn>" } # the quotes for iqn/wwpn are necessary because of the : in them.
 luns:
- - { name: lun1, vol_name: lun_vol, vserver: san_vserver, size: 10, ostype: linux, space_reserve: false, igroup: igroup1 }
+ - { name: lun1, vol_name: lun_vol, aggr: aggr1, vserver: san_vserver, size: 10, ostype: linux, space_reserve: false, igroup: igroup1 }
 
 ```
 Dependencies
