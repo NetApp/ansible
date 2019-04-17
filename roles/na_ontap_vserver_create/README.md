@@ -23,7 +23,7 @@ password: <ONTAP admin account password>
 #that you don't want to run.  The following would run all sections
 
 vservers: # Vservers to create
-  - { name: nfs_vserver, aggr: aggr1, protocol: nfs }
+  - { name: nfs_vserver, aggr: aggr1, protocol: nfs, aggr_list: "aggr1,aggr2" } # aggr_list is optional.  If not specified all aggregates will be added to the allowed list.
   - { name: cifs_vserver, aggr: aggr1, protocol: cifs }
 
 vserver_dns: # DNS at the Vserver level.
