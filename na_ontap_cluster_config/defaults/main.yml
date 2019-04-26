@@ -11,6 +11,7 @@ ifgrps:
 vlans:
 bcasts:
 inters:
+cluster:
 cluster_name: temp
 autonegotiate: true
 flowcontrol: none
