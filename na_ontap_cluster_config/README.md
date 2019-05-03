@@ -57,10 +57,8 @@ ports:   #* Ports also has variables 'autonegotiate', and 'flowcontrol' which de
   - { node: cluster-01, port: e0c, mtu: 9000 }
 
 ifgrps:
-  - { name: a0a, node: cluster-01, port: "e0a", mode: multimode }
-  - { name: a0a, node: cluster-02, port: "e0a", mode: multimode }
-  - { name: a0a, node: cluster-01, port: "e0b", mode: multimode }
-  - { name: a0a, node: cluster-02, port: "e0b", mode: multimode }
+  - { name: a0a, node: cluster-01, ports: "e0a,e0b", mode: multimode }
+  - { name: a0a, node: cluster-02, ports: "e0a,e0b", mode: multimode }
 
 vlans:
   - { id: 201, node: cluster-01, parent: a0a }
