@@ -1,0 +1,33 @@
+# tasks file for ots_deploy
+- name: Import Deploy OVA - {{ ovf_path }}
+  vmware_deploy_ovf:
+    hostname: "{{ target_vcenter_or_esxi_host }}"
+    username: "{{ host_login }}"
+    password: "{{ host_password }}"
+    validate_certs: no
+    ovf: "{{ ovf_path }}"
+    networks:
+      "ONTAP Select Deploy VM Network": "{{ mgt_network }}"
+    cluster: "{{ esx_cluster_name }}"
+    datacenter: "{{ datacenter_name }}"
+    datastore: "{{ datastore_name }}"
+    name: "{{ deploy_name }}"
+    properties:
+      gateway: "{{ deploy_gateway }}"
+      proxy_url: "{{ deploy_proxy_url }}"
+      netMask: "{{ deploy_netMask }}"
+      password: "{{ deploy_password }}"
+      product_company: "{{ deploy_product_company }}"
+      ipAddress: "{{ deploy_ipAddress }}"
+      primaryDNS: "{{ deploy_primaryDNS }}"
+      secondaryDNS: "{{ deploy_secondaryDNS }}"
+      hostName: "{{ deploy_name }}"
+      searchDomains: "{{ deploy_searchDomains }}"
+    power_on: yes
+    wait_for_ip_address: true
+    allow_duplicates: no
+  delegate_to: localhost
+- name: wait for connectivity
+  wait_for_connection:
+    delay: 60
+    timeout: 300

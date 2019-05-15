@@ -1,0 +1,21 @@
+---
+############################################################################
+# defaults file for ots_deploy
+#####  Define these here or provide vars_files in your playbook #####
+############################################################################
+target_vcenter_or_esxi_host: ""
+host_login: ""
+ovf_path: ""
+datacenter_name: ""
+esx_cluster_name: ""
+datastore_name: ""
+mgt_network: ""
+deploy_name: ""
+deploy_ipAddress: ""
+deploy_gateway: ""
+deploy_proxy_url: ""
+deploy_netMask: ""
+deploy_product_company: ""
+deploy_primaryDNS: ""
+deploy_secondaryDNS: ""
+deploy_searchDomains: ""
