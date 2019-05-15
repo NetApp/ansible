@@ -1,0 +1,39 @@
+# --------------------------
+# Check for existing cluster
+# --------------------------
+
+- name: .....checking
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters?name={{ cluster_name }}"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+
+  register: cluster_check_response
+
+# ----------------------------------------
+# Set default value of true to cluster_new
+# ----------------------------------------
+
+- name: .....set fact ( cluster_new (true) - no cluster exists )
+
+  set_fact:
+    cluster_new: true
+  when: cluster_check_response.json.num_records == 0
+
+# --------------------------------------------------------------
+# If a record is returned for the cluster name then set to false
+# --------------------------------------------------------------
+
+- name: .....set fact ( cluster_new (false) - if cluster exists )
+
+  set_fact:
+    cluster_new: false
+  when:
+    - cluster_check_response.json.num_records == 1

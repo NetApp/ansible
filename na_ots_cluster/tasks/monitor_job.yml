@@ -1,0 +1,31 @@
+# -----------------------
+# Monitor Deploymnent Job
+# -----------------------
+
+# ----------------------------------------------------------
+# Used by any REST call that returns 202 (long running job)
+# Set job_id, job_retries, and job_delay in the calling task
+# ----------------------------------------------------------
+
+- name: .....monitor job ({{ job_id }}) until "success" or "failure"
+
+  uri:
+    url: "{{ deploy_api_url }}/jobs/{{ job_id }}"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+  register: job_response
+  until: job_response.json.record.state == "success" or job_response.json.record.state == "failure"
+  retries: "{{ job_retries }}"
+  delay: "{{ job_delay }}"
+
+- name: Fail check
+  fail:
+    msg: "{{ job_response.json.record }}"
+  when:
+    - job_response.json.record.state == "failure"

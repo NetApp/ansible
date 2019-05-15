@@ -1,0 +1,93 @@
+# --------------------------------------------------------------------------------------------
+# Configure Node Storage
+# --------------------------------------------------------------------------------------------
+# 1. capacityTB is converted to bytes and then 300GB is subtracted to allow for overhead
+#    (system disk) and an additional 2% free space per TB is reserved
+# 2. if the node already has a storage pool assigned from a previously incomplete creation 
+#    process, the task will detach (DELETE) the existing pool then add the specified pool.
+# --------------------------------------------------------------------------------------------
+
+- name: .....check for existing storage pool
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters/{{ cluster_id }}/nodes/{{ outeritem.node_id }}/storage/pools"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+
+  register: check_storage_response
+
+# ---------------------------------------
+# Initialize the storage pool id variable
+# ---------------------------------------
+
+- name: .....clear (sp_id)
+  set_fact:
+    sp_id: ""
+
+# ---------------------------------------------
+# Save the current storage pool id IF it exists
+# ---------------------------------------------
+
+- name: .....set fact (sp_id)
+  set_fact:
+    sp_id: "{{ check_storage_response.json.records[0].id }}"
+  when:
+    - check_storage_response.json.num_records == 1
+
+# ----------------------------------------------------------------------
+# Detach existing storage pool IF it exists
+# - This will only occur if the cluster did not successfully deploy and 
+#   the task is being re-executed
+# ----------------------------------------------------------------------
+
+- name: .....detach existing storage pool
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters/{{ cluster_id }}/nodes/{{ outeritem.node_id }}/storage/pools/{{ sp_id }}"
+    method: DELETE
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+  loop: "{{ cluster_nodes }}"
+  when:
+    - outeritem.node_name == item.node_name
+    - check_storage_response.json.num_records == 1
+    - sp_id is defined
+
+  register: detach_node_storage_response
+
+# -----------------------
+# Attach the storage pool
+# -----------------------
+
+- name: .....attach storage pool
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters/{{ cluster_id }}/nodes/{{ outeritem.node_id }}/storage/pools"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body: '{"pool_array": [{"capacity": {{ ( (item.capacityTB * TBinBytes) - Overhead - (item.capacityTB * TB2Percent) ) | int | abs }},"name": "{{ item.storage_pool }}" }]}'
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 201,202
+    validate_certs: False
+  loop: "{{ cluster_nodes }}"
+  loop_control:
+    label: "{{ item.node_name }} ({{ item.storage_pool }})"
+  when:
+    - outeritem.node_name == item.node_name
+    - check_storage_response.json.num_records == 0
+
+  register: configure_node_storage_response

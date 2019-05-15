@@ -1,0 +1,27 @@
+# ----------------------------------------
+# Retrieve cluster details by cluster name
+# ----------------------------------------
+
+- name: .....retrieving cluster id
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters?name={{ cluster_name }}"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+
+  register: cluster_get_response
+
+# --------------------
+# Store the cluster id
+# --------------------
+
+- name: .....set fact ( cluster_id ({{ cluster_get_response.json.records.0.id }}) )
+
+  set_fact:
+    cluster_id: "{{ cluster_get_response.json.records.0.id }}"

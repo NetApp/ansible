@@ -1,0 +1,9 @@
+galaxy_info:
+  author: "NetApp"
+  description: "Role for ONTAP Select Deploy"
+  company: "NetApp"
+  license: BSD
+  min_ansible_version: 2.7
+  platforms:
+  galaxy_tags: [netapp, ontap, ontapselect, select, ots]
+  dependencies: []

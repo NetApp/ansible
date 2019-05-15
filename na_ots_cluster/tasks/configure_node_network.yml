@@ -1,0 +1,84 @@
+# --------------------------------------------------------------------------------------------------
+# Configure Node Networks
+# --------------------------------------------------------------------------------------------------
+# The order of the networks always comes out in the same order (Management, Data, Internal > 1 node)
+# --------------------------------------------------------------------------------------------------
+
+- name: Retrieve Node Network IDs
+
+  uri:
+    url: "{{ deploy_api_url }}//clusters/{{ cluster_id }}/nodes/{{ item.node_id }}/networks"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+
+  register: get_network_ids_response
+
+# ------------------
+# Management Network
+# ------------------
+
+- name: Node {{ item.node_name }} - Management Network - "{{ mgt_network }}"
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters/{{ cluster_id }}/nodes/{{ item.node_id }}/networks/{{ get_network_ids_response.json.records[0].id }}"
+    method: PATCH
+    headers:
+      Content-Type: "application/json"
+    body:
+      name: "{{ mgt_network }}"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+
+  register: mgt_network_response
+
+# ------------
+# Data Network
+# ------------
+
+- name: Node {{ item.node_name }} - Data Network - "{{ data_network }}"
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters/{{ cluster_id }}/nodes/{{ item.node_id }}/networks/{{ get_network_ids_response.json.records[1].id }}"
+    method: PATCH
+    headers:
+      Content-Type: "application/json"
+    body:
+      name: "{{ data_network }}"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+
+  register: data_network_response
+
+# ----------------
+# Internal Network
+# ----------------
+
+- name: Node {{ item.node_name }} - Internal Network - "{{ internal_network }}"
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters/{{ cluster_id }}/nodes/{{ item.node_id }}/networks/{{ get_network_ids_response.json.records[2].id }}"
+    method: PATCH
+    headers:
+      Content-Type: "application/json"
+    body:
+      name: "{{ internal_network }}"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+  when: node_count > 1
+
+  register: internal_network_response

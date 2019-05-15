@@ -1,0 +1,33 @@
+# --------------
+# Configure Node
+# --------------
+
+# --------------------------------------
+# Initial settings - IP address and host
+# --------------------------------------
+
+- name: Configure Node - {{ outeritem.node_name }} - {{ outeritem.node_id }}
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters/{{ cluster_id }}/nodes/{{ outeritem.node_id }}"
+    method: PATCH
+    headers:
+      Content-Type: "application/json"
+    body:
+      instance_type: "{{ instance_type }}"
+      host:
+        id: "{{ lookup('template', 'host2id.j2') | trim }}"
+      ip: "{{ item.ipAddress }}"
+      passthrough_disks: false
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+  loop: "{{ cluster_nodes }}"
+  loop_control:
+    label: "{{ item.node_name }} ({{ item.ipAddress }})"
+  when:
+    - outeritem.node_name == item.node_name
+
+  register: configure_node_response

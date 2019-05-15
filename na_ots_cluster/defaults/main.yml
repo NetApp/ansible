@@ -1,0 +1,139 @@
+# -------------------------------------------------------------------
+# Passwords 
+# - Place these in a separate file and implement encryption if needed
+# -------------------------------------------------------------------
+deploy_pwd: ""
+vcenter_password: ""
+ontap_pwd: ""
+host_esx_password: ""
+host_kvm_password: ""
+
+# ----------------------------------------------------------------
+# Configuration Settings
+# - Place these variables in a separate .yml file and reference in 
+#   the playbook along with the include_role statement
+# ----------------------------------------------------------------
+
+# -------------------------------
+# Number of nodes in the cluster
+# -------------------------------
+node_count: 2
+
+# -------------------------------------------
+# Hypervisor Type - ESX | KVM (case sensitve)
+# -------------------------------------------
+hypervisor: ESX
+
+# ------------------------------------------------------------------------
+# true = Authenticate through vCenter | false = Authenticate host directly
+#        if esxi host is managed by vCenter then you MUST use vCenter
+# ------------------------------------------------------------------------
+use_vcenter: true
+
+# -------------------------------------------------
+# Monitor a job until "success" or "failure"
+# - Host registration jobs will always be monitored
+# -------------------------------------------------
+monitor_deploy_job: false
+monitor_deploy_retries: 60
+monitor_deploy_delay: 120
+monitor_host_retries: 10
+monitor_host_delay: 15
+monitor_netcheck_retries: 30
+monitor_netcheck_delay: 60
+
+# ----------------------------------------------------------------------
+# Network Connectivity Check
+# - Set to true to run the network connectivity check
+# - Valid modes: quick, extended, cleanup
+# - Valid switch types: StandardvSwitch, DistributedvSwitch, OpenvSwitch
+# - cluster_nodes referenced so make sure item count = node count !!!
+# ----------------------------------------------------------------------
+run_net_check: false
+net_mode: quick
+net_mtu: 9000
+net_switch_type: StandardvSwitch
+
+# -----------
+# Deploy Info
+# -----------
+deploy_ip: 
+deploy_api_url: "https://{{ deploy_ip }}/api/v3"
+deploy_login: admin
+
+# ------------
+# vCenter Info
+# ------------
+vcenter_login: administrator@vsphere.local
+vcenter_name: vc.vsphere.local
+
+# -----
+# Hosts
+# -----
+esxi_hosts:
+  - host_name: 
+    host_login: 
+  - host_name: 
+    host_login: 
+
+kvm_hosts:
+  - host_name: 
+    host_login: 
+  - host_name: 
+    host_login: 
+
+# ------------
+# Cluster Info
+# ------------
+cluster_name: 
+cluster_ip: 
+cluster_netmask: 
+cluster_gateway: 
+cluster_ontap_image: "9.5P1"
+cluster_ntp:
+  - 
+cluster_dns_ips:
+  - 
+cluster_dns_domains:
+  - 
+
+# --------
+# Networks
+# --------
+mgt_network: Management
+data_network: Data
+internal_network: Internal
+
+# --------
+# Instance
+# --------
+instance_type: small
+
+# --------------------------------------------------
+# Node Info
+# - cluster_nodes # of items should equal node_count
+# --------------------------------------------------
+cluster_nodes:
+  - node_name: "{{ cluster_name }}-01"
+    ipAddress: 
+    storage_pool:
+    capacityTB: 3
+    host_name: 
+  - node_name: "{{ cluster_name }}-02"
+    ipAddress: 
+    storage_pool:
+    capacityTB: 3
+    host_name: 
+
+# ------------------------------------------
+# Capacity Conversion Values
+# Note: 1TB    in Bytes = 1099511627776
+#       300GB  in Bytes = 322122547200
+#       2% 1TB in Bytes = 21990232555
+#
+# Formula used to calculate Storage Capacity
+# ( capacityTB * TBinBytes - Overhead )
+# ------------------------------------------
+TBinBytes: 1099511627776
+Overhead: 322122547200
+TB2Percent: 21990232555

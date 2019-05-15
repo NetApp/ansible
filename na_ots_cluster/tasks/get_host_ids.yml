@@ -1,0 +1,40 @@
+# ----------------------
+# Build List of Host IDs
+# ----------------------
+
+# -----------------------------------
+# Retrieve currently registered hosts
+# -----------------------------------
+
+- name: Get Host IDs
+
+  uri:
+    url: "{{ deploy_api_url }}/hosts?invalidate_cache=true"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+
+  register: get_host_ids_response
+
+# -----------------------------------------------------------------------------
+# Add host name and id to list
+# - Clear the list since this task is called before AND after host registration
+# - The list is used to inject the host ID into any tasks needing the value
+# - A template (host2id.j2) does the lookup
+# -----------------------------------------------------------------------------
+
+- name: .....clear list
+
+  set_fact:
+    host_id_list: []
+
+- name: .....build list of host IDs
+
+  set_fact:
+    host_id_list: "{{ host_id_list|default([]) + [ {'host_name': item.name, 'host_id': item.id} ] }}"
+  loop: "{{ get_host_ids_response.json.records }}"

@@ -1,0 +1,9 @@
+{% if hypervisor == "ESX" %}
+
+   {{ host_esx_password }}
+
+{% else %}
+
+   {{ host_kvm_password }}
+
+{% endif %}

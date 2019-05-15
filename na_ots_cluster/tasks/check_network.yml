@@ -1,0 +1,50 @@
+# -------------
+# Check Network
+# -------------
+
+# --------------------------------------------------------------
+# Compare the number of cluster nodes specified in cluster_nodes 
+# to the specified node count. If they do NOT match then do NOT
+# run the network test since the host names are pulled
+# from cluster_nodes. Don't want to stop the cluster deployment. 
+# ---------------------------------------------------------------
+
+- debug:
+    msg: "The specified node count ({{ node_count }}) does not match the number of provided cluster nodes ({{ cluster_nodes_count }})"
+  when:
+    - cluster_nodes_count != actual_nodes_count
+
+# --------------
+# Start the test
+# --------------
+
+- name: Network Connectivity Check
+
+  uri:
+    url: "{{ deploy_api_url }}/network/connectivitychecks"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body: "{{ lookup('template', 'networkcheck.j2') }}"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 202
+    validate_certs: False
+  register: check_network_response
+  when:
+    - cluster_nodes_count == actual_nodes_count
+
+# ---------------
+# Monitor the job
+# ---------------
+
+- name: .....monitor network connectivity job
+
+  include_tasks: monitor_job.yml
+  vars:
+    job_id: "{{ check_network_response.json.job.id }}"
+    job_retries: "{{ monitor_netcheck_retries }}"
+    job_delay: "{{ monitor_netcheck_delay }}"
+  when:
+    - cluster_nodes_count == actual_nodes_count

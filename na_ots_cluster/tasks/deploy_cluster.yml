@@ -1,0 +1,39 @@
+# --------------
+# Deploy Cluster
+# --------------
+
+# -------------------------------------------------------------------
+# Build the cluster once all the configure_node* tasks have completed
+# -------------------------------------------------------------------
+
+- name: .....start deployment - {{ cluster_name }}
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters/{{ cluster_id }}/deploy?inhibit_rollback=false"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body:
+      ontap_credential:
+        password: "{{ ontap_pwd }}"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 202
+    validate_certs: False
+
+  register: cluster_deploy_response
+
+# --------------------------------------------------------
+# Monitor the deployment job IF specified
+# - setting to false will return the prompt for other work
+# --------------------------------------------------------
+
+- name: .....monitor cluster deploy job
+  include_tasks: monitor_job.yml
+  vars:
+    job_id: "{{ cluster_deploy_response.json.job.id }}"
+    job_retries: "{{ monitor_deploy_retries }}"
+    job_delay: "{{ monitor_deploy_delay }}"
+  when:
+    - monitor_deploy_job

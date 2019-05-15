@@ -1,0 +1,27 @@
+# ------------
+# Get Node IDs
+# ------------
+
+- name: .....retrieving node IDs
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters/{{ cluster_id }}/nodes?order_by=name%20asc"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+  register: get_node_ids_response
+
+# ----------------------------
+# Add node name and id to list
+# ----------------------------
+
+- name: .....build list of node IDs
+
+  set_fact:
+    node_id_list: "{{ node_id_list|default([]) + [ {'node_name': item.name, 'node_id': item.id} ] }}"
+  loop: "{{ get_node_ids_response.json.records }}"

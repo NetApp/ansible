@@ -1,0 +1,59 @@
+# ---------------
+# Verify Settings
+# ---------------
+
+# --------------------------------------------------------------
+# Compare the number of cluster nodes specified in cluster_nodes 
+# to the node count. If node count is greater than the number of 
+# cluster_nodes stop the task.
+# - More cluster nodes than node count will still work since 
+#   additional cluster_nodes are skipped - the loop is driven 
+#   by the node_id_list (not the cluster_nodes)
+# ---------------------------------------------------------------
+
+- name: .....set fact (cluster_nodes_count)
+
+  set_fact:
+    cluster_nodes_count: "{{ cluster_nodes | length }}"
+
+- name: .....set fact (actual_nodes_count)
+
+  set_fact:
+    actual_nodes_count: "{{ node_count | string }}"
+
+- name: ....compare node_count to cluster_nodes count
+
+  fail:
+    msg: "The specified node count ({{ node_count }}) is greater than the number of provided cluster nodes ({{ cluster_nodes_count }})"
+  when:
+    - actual_nodes_count > cluster_nodes_count
+
+# ------------
+# Verify Image
+# ------------
+
+- name: .....verify image
+
+  uri:
+    url: "{{ deploy_api_url }}/images?id={{ cluster_ontap_image }}"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+
+  register: verify_image_response
+
+# ----------------------------------------------
+# If a record is not returned then fail playbook
+# ----------------------------------------------
+
+- name: .....stop task if ONTAP image is not available
+
+  fail:
+    msg: "Requested ONTAP Image Not Found in Deploy - {{ cluster_ontap_image }}"
+  when:
+    - verify_image_response.json.num_records == 0

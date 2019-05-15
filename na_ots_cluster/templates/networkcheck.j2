@@ -1,0 +1,13 @@
+{
+"debug": false,
+"host_networks": [
+{%for nodeinfo in cluster_nodes %}
+    {
+      "host_name": "{{nodeinfo.host_name}}",
+      "network_name": "{{internal_network}}"
+    }{% if not loop.last %}, {%endif%}{%endfor%}
+  ],
+  "mode": "{{net_mode}}",
+  "mtu": {{net_mtu}},
+  "vswitch_type": "{{net_switch_type}}"
+}

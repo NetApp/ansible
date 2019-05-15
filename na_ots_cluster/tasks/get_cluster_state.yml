@@ -1,0 +1,27 @@
+# ----------------------------------------
+# Retrieve cluster state
+# ----------------------------------------
+
+- name: .....retrieving cluster state
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters/{{ cluster_id }}?fields=*"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 200
+    validate_certs: False
+
+  register: cluster_get_response
+
+# -----------------------
+# Store the cluster state
+# -----------------------
+
+- name: .....set fact ( cluster_deployed ({{ cluster_get_response.json.record.is_deployed }}) )
+
+  set_fact:
+    cluster_deployed: "{{ cluster_get_response.json.record.is_deployed | bool }}"

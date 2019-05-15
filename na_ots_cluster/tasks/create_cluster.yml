@@ -1,0 +1,41 @@
+# ------------------
+# Create the cluster
+# ------------------
+
+# -----------------------------------------------------
+# Verify the node count is a valid settings (1,2,4,6,8)
+# -----------------------------------------------------
+
+- name: Fail check
+  fail:
+    msg: "INVALID NODE COUNT - Must be 1,2,4,6 or 8.  Node Count currently set to {{ node_count }}"
+  when: node_count not in [1,2,4,6,8]
+
+# -----------------------------------------------------------------
+# Create the initial cluster template for the configure_node* tasks
+# -----------------------------------------------------------------
+
+- name: .....creating cluster
+
+  uri:
+    url: "{{ deploy_api_url }}/clusters?node_count={{ node_count }}"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body:
+      name: "{{ cluster_name }}"
+      ontap_image_version: "{{ cluster_ontap_image }}"
+      gateway: "{{ cluster_gateway }}"
+      ip: "{{ cluster_ip }}"
+      netmask: "{{ cluster_netmask }}"
+      ntp_servers: "{{ cluster_ntp }}"
+      dns_info:
+        dns_ips: "{{ cluster_dns_ips }}"
+        domains: "{{ cluster_dns_domains }}"
+    body_format: json
+    user: "{{ deploy_login }}"
+    password: "{{ deploy_pwd }}"
+    status_code: 201
+    validate_certs: False
+
+  register: cluster_create_response
