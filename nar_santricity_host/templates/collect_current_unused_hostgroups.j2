@@ -1,0 +1,10 @@
+{#- This Jinja template determines the unused host groups through the dictionary, current_storage_array_hostgroups,
+        which will contain a list of associated initiator ids. Any entry that contains an empty initiator list will
+        be returned in the unused_hostgroup list.
+#}
+
+{%- set unused_hostgroup = [] %}
+{%- for current_host_name in (current_storage_array_hostgroups.keys()|list) %}
+  {%- if (current_storage_array_hostgroups[current_host_name]|length==0) and unused_hostgroup.append(current_host_name) %}{%- endif %}
+{%- endfor %}
+{{ unused_hostgroup }}

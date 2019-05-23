@@ -1,0 +1,51 @@
+{#- This Jinja template collects host initiator ids from hosts and target_information dictionaries.
+
+    Examples:
+      "hosts": {
+        "current_hosts": {"host3": {"group": "servers", "ports": []}, ...},
+        "expected_hosts": {"10.113.1.182": null,
+                           "10.113.3.10": "servers", ...},
+        "groups": {"servers": ["host3"], ...}}
+
+      "host_information": {
+        "10.113.1.183": {
+          "hostname": "ictm-h1r7c18-SLES",
+          "fqdn": "ictm-h1r7c18-SLES",
+          "os_type": "Linux",
+          "os_distribution": "SLES",
+          "os_version": "12.3",
+          "ports": [{"ipv4": {"address": "10.10.10.101",
+                              "broadcast": "10.10.10.255",
+                              "netmask": "255.255.255.0",
+                              "network": "10.10.10.0"},
+                     "available": true,
+                     "port": {"label": "CCiface1",
+                              "port": "iqn.1994-05.com.redhat:86ef33fecdee",
+                              "type": "iscsi"}}, ...]
+
+#}
+
+{%- set port_selection = [] %}
+
+{#- Search for a current host interface ports among those currently available #}
+{%- if item in (hosts["current_hosts"].keys()|list) %}
+ {%- for current_host_port in hosts["current_hosts"][item]["ports"] %}
+   {%- for target_port_info in host_information[item]["ports"] %}
+
+     {#- Added existing host object ports to the selection list #}
+     {%- if current_host_port == target_port_info["port"] %}
+       {%- if port_selection.append(target_port_info["port"]) %}{%- endif %}
+       {%- if target_port_info.update({"available": False}) %}{%- endif %}
+     {%- endif %}
+   {%- endfor %}
+ {%- endfor %}
+{%- endif %}
+
+{#- Add additional ports if necessary #}
+{%- for target_port_info in host_information[item]["ports"] %}
+  {%- if target_port_info["available"] %}
+    {%- if port_selection.append(target_port_info["port"]) %}{%- endif %}
+    {%- if target_port_info.update({"available": False}) %}{%- endif %}
+  {%- endif %}
+{%- endfor %}
+{{ port_selection }}

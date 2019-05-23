@@ -1,0 +1,84 @@
+---
+# netapp_eseries_iscsi/tasks/initiator.yml
+
+- name: Collect facts on the storage array
+  netapp_e_facts:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+  register: storage_array_facts
+  when: eseries_host_object is defined
+
+- name: Organize current and expected hostgroups
+  set_fact:
+    current_storage_array_hostgroups: "{% include ([netapp_eseries_relative_template_path, 'collect_current_hostgroups.j2']|join('')) %}"
+    hostgroups: "{% include ([netapp_eseries_relative_template_path, 'collect_host_object_hostgroups.j2']|join('')) %}"
+  when: eseries_host_object is defined
+
+- name: Configure inventory-defined hostgroup definitions
+  netapp_e_hostgroup:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    state: present
+    name: "{{ item }}"
+    hosts: "{{ current_storage_array_hostgroups[item] | default(omit) }}"
+    log_path: "{{ item.log_path | default(eseries_log_path | default(omit)) }}"
+  loop: "{{ lookup('list', hostgroups) }}"
+  when: eseries_host_object is defined and (hostgroups|length>0)
+
+- name: Configure inventory-defined host definitions
+  netapp_e_host:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    log_path: "{{ item.log_path | default(eseries_log_path | default(omit)) }}"
+    state: "{{ item.state | default(omit) }}"
+    name: "{{ item.name }}"
+    ports: "{{ item.ports | default(omit) }}"
+    force_port: "{{ item.force_port | default(eseries_host_force_port | default(omit)) }}"
+    group: "{{ item.group | default(eseries_host_group | default(omit)) }}"
+    host_type: "{{ item.host_type_index | default(item.host_type | default(eseries_host_type_index)) }}"
+  loop: "{{ lookup('list', eseries_host_object) }}"
+  when: eseries_host_object is defined
+
+- name: Collect facts on the storage array
+  netapp_e_facts:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+  register: storage_array_facts
+  when: eseries_host_object is defined
+
+- name: Update the current storage array hostgroups
+  set_fact:
+    current_storage_array_hostgroups: "{% include ([netapp_eseries_relative_template_path, 'collect_current_hostgroups.j2']|join('')) %}"
+  when: eseries_host_object is defined
+
+- name: Create list of unused hostgroups
+  set_fact:
+    unused_hostgroups: "{% include ([netapp_eseries_relative_template_path, 'collect_current_unused_hostgroups.j2']|join('')) %}"
+  when: eseries_host_object is defined
+
+- name: Configure inventory-defined hostgroup definitions
+  netapp_e_hostgroup:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    state: absent
+    name: "{{ item }}"
+    hosts: "{{ current_storage_array_hostgroups[item] | default(omit) }}"
+    log_path: "{{ item.log_path | default(eseries_log_path | default(omit)) }}"
+  loop: "{{ lookup('list', unused_hostgroups) }}"
+  when: "eseries_host_object is defined and (unused_hostgroups|length>0) and eseries_host_remove_unused_hostgroup is
+         defined and eseries_host_remove_unused_hostgroup"

@@ -1,0 +1,24 @@
+{#- This Jinja template creates a list of required netapp_e_storagepools module options from the eseries* variables #}
+
+{%- set complete_volume_list=[] %}
+{%- for storage_pool_info in eseries_storage_pool_configuration %}
+  {%- for storage_pool in (storage_pool_info["name"]|patternize(inventory=hostvars[inventory_hostname])) %}
+    {%- if complete_volume_list.append({
+       "state": (storage_pool_info["state"] | default(eseries_storage_pool_state | default("present"))),
+       "name": storage_pool,
+       "raid_level": (storage_pool_info["raid_level"] | default(eseries_storage_pool_raid_level | default(omit))),
+       "secure_pool": (storage_pool_info["secure_pool"] | default(eseries_storage_pool_secure_pool | default(omit))),
+       "criteria_drive_count": (storage_pool_info["criteria_drive_count"] | default(eseries_storage_pool_criteria_drive_count | default(omit))),
+       "reserve_drive_count": (storage_pool_info["reserve_drive_count"] | default(eseries_storage_pool_reserve_drive_count | default(omit))),
+       "criteria_min_usable_capacity": (storage_pool_info["criteria_min_usable_capacity"] | default(eseries_storage_pool_criteria_min_usable_capacity | default(omit))),
+       "criteria_drive_type": (storage_pool_info["criteria_drive_type"] | default(eseries_storage_pool_criteria_drive_type | default(omit))),
+       "criteria_size_unit": (storage_pool_info["criteria_size_unit"] | default(eseries_storage_pool_criteria_size_unit | default(omit))),
+       "criteria_drive_min_size": (storage_pool_info["criteria_drive_min_size"] | default(eseries_storage_pool_criteria_drive_min_size | default(omit))),
+       "criteria_drive_require_da": (storage_pool_info["criteria_drive_require_da"] | default(eseries_storage_pool_criteria_drive_require_da | default(omit))),
+       "criteria_drive_require_fde": (storage_pool_info["criteria_drive_require_fde"] | default(eseries_storage_pool_criteria_drive_require_fde | default(omit))),
+       "remove_volumes": (storage_pool_info["remove_volumes"] | default(eseries_storage_pool_remove_volumes | default(omit))),
+       "erase_secured_drives": (storage_pool_info["erase_secured_drives"] | default(eseries_storage_pool_erase_secured_drives | default(omit)))}) %}
+    {%- endif %}
+  {%- endfor %}
+{%- endfor %}
+{{ complete_volume_list | list }}

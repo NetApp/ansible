@@ -1,0 +1,19 @@
+{#- This Jinja template will determine from Ansible setup module the appropriate host index.
+     This utilizes the facts gathered about a host from a storage array via delegate_to feature.
+   Example:
+     - name: Collect host networking information
+       setup:
+         gather_subset: network
+       register: host_network
+       delegate_to: "{{ item }}"
+       loop:
+         - 192.168.1.29
+         - 192.169.1.30
+#}
+{%- set host_type = "0" %}
+{%- if hostvars[item]['ansible_facts']['os_family'] == "Windows" %}
+  {%- set host_type = "windows" %}
+{%- elif hostvars[item]['ansible_facts']['system'] == "Linux" %}
+  {%- set host_type = "linux dm-mp" %}
+{%- endif %}
+{{ host_type }}

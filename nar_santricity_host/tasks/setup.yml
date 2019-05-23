@@ -1,0 +1,160 @@
+---
+# netapp_eseries_iscsi/tasks/setup.yml
+- name: Setup role for versions before Ansible 2.8
+  block:
+  - name: Ensure filter_plugins directory exists in the playbook directory
+    file:
+      path: "{{ playbook_dir + '/filter_plugins' }}"
+      state: directory
+    delegate_to: localhost
+    register: filter_directory
+  - name: Ensure library directory exists in the playbook directory for modules
+    file:
+      path: "{{ playbook_dir + '/library' }}"
+      state: directory
+    delegate_to: localhost
+    register: library_directory
+  - name: Ensure filter_plugins directory is populated with required filters
+    copy:
+      src: "{{ item }}"
+      dest: "{{ playbook_dir + '/filter_plugins/' + item }}"
+    delegate_to: localhost
+    register: filter_plugins
+    loop:
+      - patternize.py
+  - name: Ensure library directory is populated with required NetApp E-Series modules
+    copy:
+      src: "{{ item }}"
+      dest: "{{ playbook_dir + '/library/' + item }}"
+    delegate_to: localhost
+    register: library_modules
+    loop:
+      - netapp_e_facts.py
+      - netapp_e_host.py
+      - netapp_e_iscsi_target.py
+      - netapp_e_storagepool.py
+      - netapp_e_hostgroup.py
+      - netapp_e_iscsi_interface.py
+      - netapp_e_lun_mapping.py
+      - netapp_e_volume.py
+  - name: Determine whether playbook restart is required due to setup changes.
+    fail:
+      msg: "NetApp E-Series role setup has placed the required modules and filter plugin in the
+      playbook directory. The required modules will be available in the Ansible 2.9 release. Please restart your playbook."
+    when: "filter_directory.changed or library_directory.changed or filter_plugins.changed or library_modules.changed"
+  when: ansible_version.major == 1 or (ansible_version.major == 2 and ansible_version.minor < 8)
+
+- name: Setup role for Ansible 2.8
+  block:
+  - name: Ensure filter_plugins directory exists in the roles path
+    file:
+      path: "{{ role_path + '/filter_plugins' }}"
+      state: directory
+    delegate_to: localhost
+    register: filter_directory
+  - name: Ensure library directory exists in the roles path
+    file:
+      path: "{{ role_path + '/library' }}"
+      state: directory
+    delegate_to: localhost
+    register: library_directory
+  - name: Ensure filter_plugins directory is populated with required filters
+    copy:
+      src: "{{ item }}"
+      dest: "{{ role_path + '/filter_plugins/' + item }}"
+    delegate_to: localhost
+    register: filter_plugins
+    loop:
+      - patternize.py
+  - name: Ensure library directory is populated with required NetApp E-Series modules
+    copy:
+      src: "{{ item }}"
+      dest: "{{ role_path + '/library/' + item }}"
+    delegate_to: localhost
+    register: library_modules
+    loop:
+      - netapp_e_facts.py
+      - netapp_e_host.py
+      - netapp_e_iscsi_target.py
+      - netapp_e_storagepool.py
+      - netapp_e_hostgroup.py
+      - netapp_e_iscsi_interface.py
+      - netapp_e_lun_mapping.py
+      - netapp_e_volume.py
+  - name: Ensure NetApp E-Series modules do not exist in library directory found in playbook's directory
+    file:
+      state: absent
+      path: "{{ playbook_dir + '/library/' + item }}"
+    delegate_to: localhost
+    register: library_modules_remove
+    loop:
+      - netapp_e_facts.py
+      - netapp_e_host.py
+      - netapp_e_iscsi_target.py
+      - netapp_e_storagepool.py
+      - netapp_e_hostgroup.py
+      - netapp_e_iscsi_interface.py
+      - netapp_e_lun_mapping.py
+      - netapp_e_volume.py
+  - name: Determine whether playbook restart is required due to setup changes.
+    fail:
+      msg: "NetApp E-Series role setup has placed the required modules and filter plugin in the
+      roles directory. The required modules will be available in the Ansible 2.9 release. Please restart your playbook."
+    when: "filter_directory.changed or library_directory.changed or filter_plugins.changed or library_modules.changed
+     or library_modules_remove.changed"
+  when: ansible_version.major == 2 and ansible_version.minor == 8
+
+- name: Setup role for Ansible 2.9 or later
+  block:
+  - name: Ensure filter_plugins directory exists in the roles path
+    file:
+      path: "{{ role_path + '/filter_plugins' }}"
+      state: directory
+    delegate_to: localhost
+    register: filter_directory
+  - name: Ensure filter_plugins directory is populated with required filters
+    copy:
+      src: "{{ item }}"
+      dest: "{{ role_path + '/filter_plugins/' + item }}"
+    delegate_to: localhost
+    register: filter_plugins
+    loop:
+      - patternize.py
+  - name: Ensure NetApp E-Series modules do not exist in library directory found in playbook's directory
+    file:
+      state: absent
+      path: "{{ playbook_dir + '/library/' + item }}"
+    delegate_to: localhost
+    register: library_modules_playbook_remove
+    loop:
+      - netapp_e_facts.py
+      - netapp_e_host.py
+      - netapp_e_iscsi_target.py
+      - netapp_e_storagepool.py
+      - netapp_e_hostgroup.py
+      - netapp_e_iscsi_interface.py
+      - netapp_e_lun_mapping.py
+      - netapp_e_volume.py
+  - name: Ensure NetApp E-Series modules do not exist in library directory found in role's directory
+    file:
+      state: absent
+      path: "{{ role_path + '/library/' + item }}"
+    delegate_to: localhost
+    register: library_modules_role_remove
+    loop:
+      - netapp_e_facts.py
+      - netapp_e_host.py
+      - netapp_e_iscsi_target.py
+      - netapp_e_storagepool.py
+      - netapp_e_hostgroup.py
+      - netapp_e_iscsi_interface.py
+      - netapp_e_lun_mapping.py
+      - netapp_e_volume.py
+
+  - name: Determine whether playbook restart is required due to setup changes.
+    fail:
+      msg: "NetApp E-Series role setup has placed the required filter plugin in the roles directory.
+       Please restart your playbook."
+    when: "filter_directory.changed or filter_plugins.changed or library_modules_playbook_remove.changed or
+    library_modules_role_remove.changed"
+  when: ansible_version.major > 2 or (ansible_version.major == 2 and ansible_version.minor > 8)

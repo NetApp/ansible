@@ -1,0 +1,13 @@
+{#- This Jinja template determines the current storage array host groups from the execution of the netapp_e_facts
+        module. The netapp_e_facts module must be run against the storage system prior to execution with
+        register: storage_array_facts.
+#}
+
+{%- set current_hostgroup={} %}
+{%- for group in storage_array_facts["storage_array_facts"]["netapp_host_groups"] %}
+  {%- if current_hostgroup.update( {group["name"]: []} ) %}{%- endif %}
+  {%- for host in storage_array_facts["storage_array_facts"]["netapp_hosts"] %}
+    {%- if group["id"] == host["group_id"] and current_hostgroup[group["name"]].append(host["name"]) %}{%- endif %}
+  {%- endfor %}
+{%- endfor %}
+{{ current_hostgroup }}

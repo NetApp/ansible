@@ -1,0 +1,127 @@
+# THIS EXAMPLE IS A VERBOSE EXAMPLE OF HOST INVENTORY FILE WITH DESCRIPTIONS AND IS INTENDED FOR USERS THAT NEED VERY SPECIFIC CONTROL.
+
+# Default Storage System Credentials for Interacting with Web Services REST API
+# -----------------------------------------------------------------------------
+#eseries_ssid: 1                                    # Storage array identifier.
+#eseries_api_url: https://192.168.10.100/devmgr/v2  # Url for the web services api. Example: https://192.168.10.100/devmgr/v2
+#eseries_api_username: admin                        # Username for the web services api.
+#eseries_api_password: password                     # Password for the web services api.
+#eseries_validate_certs: False                      # Whether the SSL certificates should be verified. (boolean)
+
+
+# Controller Interface Port Policy Specifications
+# -----------------------------------------------
+#eseries_controller_port_config_method: dhcp        # General port configuration method definition for both controllers. Choices: static, dhcp
+#eseries_controller_port_gateway:                   # General port IPv4 gateway for both controllers.
+#eseries_controller_port_subnet_mask:               # General port IPv4 subnet mask for both controllers.
+#eseries_controller_port_mtu: 9000                  # General port maximum transfer units (MTU) for both controllers. Any value greater than 1500 (bytes).
+#eseries_controller_port:
+#  controller_a:                                    # Controller A port definition.
+#    state:                                         # General definitions for all ports on controller A. Any option specified in the ports definition can be
+                                                    #     specified here to generalize for all controller A ports.
+#    config_method:                                 # Port configuration method Choices: static, dhcp
+#    address:                                       # Port IPv4 address
+#    gateway:                                       # Port IPv4 gateway
+#    subnet_mask:                                   # Port IPv4 subnet_mask
+#    ports:                                         # List containing ports definitions
+#      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read
+                                                    #     left to right on the HIC.
+#        state:                                     # Whether the port should be enabled.
+#        config_method:                             # Port configuration method Choices: static, dhcp
+#        address:                                   # Port IPv4 address
+#        gateway:                                   # Port IPv4 gateway
+#        subnet_mask:                               # Port IPv4 subnet_mask
+#  controller_b:                                    # Controller B port definition.
+#    state:                                         # General definitions for all ports on controller B. Any option specified in the ports definition can be
+                                                    #     specified here to generalize for all controller A ports.
+#    config_method:                                 # Port configuration method Choices: static, dhcp
+#    address:                                       # Port IPv4 address
+#    gateway:                                       # Port IPv4 gateway
+#    subnet_mask:                                   # Port IPv4 subnet_mask
+#    ports:                                         # List containing ports definitions
+#      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read
+                                                    #     left to right on the HIC.
+#        state:                                     # Whether the port should be enabled.
+#        config_method:                             # Port configuration method Choices: static, dhcp
+#        address:                                   # Port IPv4 address
+#        gateway:                                   # Port IPv4 gateway
+#        subnet_mask:                               # Port IPv4 subnet_mask
+
+
+# Target Discovery Policy Specifications
+# --------------------------------------
+#eseries_target_name:                         # iSCSI target name
+#eseries_target_ping: True                    # Enables ICMP ping response from the configured iSCSI ports (boolean)
+#eseries_target_unnamed_discovery: True       # Whether the iSCSI target iqn should be returned when an initiator performs a discovery session.
+#eseries_target_chap_secret:                  # iSCSI chap secret.
+                                              #   * NOTE add the argument --extra-vars "eseries_target_chap_secret_update=True" to ansible-playbook execution command to update
+
+# Host Policy Specifications
+# --------------------------
+#eseries_host_force_port: True                # Default for whether ports are to be allowed to be re-assigned (boolean)
+#eseries_host_remove_unused_hostgroup: True   # Forces any unused groups to be removed
+#eseries_host_object:
+#  - name:                                    # Host label as referenced by the storage array.
+#    state:                                   # Whether the host object should exist. Choices present, absent
+#    host_type:                               # Windows (non-clustering) 1, Windows (clustering) 6, Vmware 10, Linux (using kernal 3.10 and later) 28
+#    group:                                   # Host's host group
+#    ports:                                   # List of port definitions
+#      - type:                                # Port protocol definition (iscsi, fc, sas, ib, nvme)
+#        label:                               # Arbitrary port label
+#        port:                                # Port initiator (iqn or wwpn)
+
+
+# Storage Pool-Volume Policy Specifications
+# -----------------------------------------
+#   Name schemes: Storage pool and volume names can be used to specify a naming scheme to produce a list of storage pools and volumes. The schemes are defined by
+#                 brackets which can be used to specify a range of lowercase letters, uppercase letters, single digit numbers, any top-level inventory
+#                 variables, and the current defined storage pool (volume only). Add [pool] to any volume name and it will be replaced with the group name.
+
+#eseries_storage_pool_configuration:
+#  - name:                         # Name or name scheme (see above) for the storage pool.
+#    state:                        # Specifies whether the storage pool should exist (present, absent).
+#    raid_level                    # Volume group raid level. Choices: raid0, raid1, raid5, raid6, raidDiskPool (Default: raidDiskPool)
+#    secure_pool: no               # Default for storage pool drive security. This flag will enable the security at rest feature. There must be sufficient FDE or FIPS security capable drives. Type: boolean
+#    criteria_drive_count:         # Default storage pool drive count.
+#    reserve_drive_count:          # Default reserve drive count for drive reconstruction for storage pools using dynamic disk pool and the raid level must be set for raidDiskPool.
+#    criteria_min_usable_capacity: # Default minimum required capacity for storage pools.
+#    criteria_drive_type:          # Default drive type for storage pools. Choices: hdd, ssd
+#    criteria_size_unit: gb        # Default unit size for all storage pool related sizing. Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
+#    criteria_drive_min_size:      # Default minimum drive size for storage pools.
+#    criteria_drive_require_da:    # Default for whether storage pools are required to have data assurance (DA) compatible drives. Type: boolean
+#    criteria_drive_require_fde:   # Default for whether storage pools are required to have drive security compatible drives. Type: boolean
+#    remove_volumes:               # Default policy for deleting volumes prior to removing storage pools.
+#    erase_secured_drives:         # Default policy for erasing the content drives during create and delete storage pool operations. Type: boolean
+#    common_volume_configuration:
+#      state:                      # Specifies whether the volume should exist (present, absent)
+#      host:                       # host or host group for the volume should be mapped to.
+#      size:                       # Size of the volume or presented size of the thinly provisioned volume.
+#      size_unit:                  # Unit size for the size, thin_volume_repo_size, and thin_volume_max_repo_size. Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
+#      workload_name:              # Name of the volume's workload.
+#      metadata:                   # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
+#    volumes:                      # List of volumes to associated the storage pool.
+#      - state:                    # Specifies whether the volume should exist (present, absent)
+#        name:                     # (required) Name or name scheme (see above) for the volume(s) to be created in the storage pool(s)
+#        host:                     # host or host group for the volume should be mapped to.
+#        size:                     # Size of the volume or presented size of the thinly provisioned volume.
+#        size_unit:                # Unit size for the size, thin_volume_repo_size, and thin_volume_max_repo_size. Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
+#        workload_name:            # Name of the volume's workload.
+#        metadata:                 # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
+
+
+# Initiator-Target Protocol Variables
+# -----------------------------------
+#eseries_initiator_protocol: iscsi     # This variable defines which protocol the storage array will use. Choices: iscsi, fc, sas
+#eseries_initiator_configuration:      # Note that the following commands produce a unique list of IQNs or WWNs of the interfaces used, line separated.
+#  fc:
+#    eseries_initiator_command:
+#      linux: "systool -c fc_host -v | grep port_name | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
+#      windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'Fibre Channel' | Select-Object -Property PortAddress | Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
+#  iscsi:
+#    eseries_initiator_command:
+#      linux: "cat /etc/iscsi/initiatorname.iscsi | grep iqn. | cut -d'=' -f 2 && iscsiadm -m iface | grep iqn. | cut -d',' -f 5 | sort | uniq"
+#      windows: "(get-initiatorPort | select-object -property nodeaddress | sort-object | get-unique | ft -autoSize | out-string -stream | select-string iqn | out-string).trim()"
+#  sas:
+#    eseries_initiator_command:
+#      linux: "systool -c scsi_host -v | grep host_sas_address | cut -d '\"' -f 2 | cut -d 'x' -f 2"
+#      windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'SAS' | Select-Object -Property PortAddress | Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
