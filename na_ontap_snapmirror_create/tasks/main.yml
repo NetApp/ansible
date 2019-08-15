@@ -25,7 +25,7 @@
     dest_hostname: "{{ dst_ontap }}"
     https: true
     validate_certs: false
-- name: Validate desitnation FlexVol
+- name: Validate destination FlexVol
   na_ontap_volume:
     state: present
     name: "{{ dst_volume }}"
