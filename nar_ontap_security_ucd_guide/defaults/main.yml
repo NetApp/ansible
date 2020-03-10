@@ -1,0 +1,36 @@
+---
+# defaults file for nar_ontap_security_ucd_guide
+hostname: 
+username: 
+password: 
+node01_name: 
+node02_name:
+admin_vserver: 
+fw_dns_allow_ip: 0.0.0.0/0 
+fw_ssh_allow_ip: 0.0.0.0/0
+fw_ntp_allow_ip: 0.0.0.0/0 
+core_mgmt_allow_ip: 0.0.0.0/0
+data_core_cifs_allow_ip: 0.0.0.0/0
+node01_mgmt_lif_name: 
+node02_mgmt_lif_name:
+domain_access_vserver: 
+da_root_vol_name: 
+da_root_vol_aggr_name: 
+node01_da_failover_target_port: 
+node02_da_failover_target_port:
+node01_da_lif_home_port: 
+lif_da_ip: 
+lif_da_mask: 
+da_dns_domain_name: 
+da_dns_ip: 
+da_cifs_server_name: 
+da_ad_domain_passwd: 
+da_ad_domain_user_name: 
+da_ad_ou_name: 
+ad_da_user_name:
+ntp_server_ip: 
+syslog_server: 
+emergency_user_name: 
+emergency_user_password: 
+allowed_http_ip: 127.0.0.1/32
+allowed_https_ip: 127.0.0.1/32

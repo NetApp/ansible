@@ -1,0 +1,473 @@
+---
+# tasks file for nar_ontap_security_ucd_guide
+- name: Enable IPv6
+  na_ontap_command:
+    command: ['network options ipv6 modify -enabled true']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Disable autosupport
+  na_ontap_autosupport:
+    state: absent
+    node_name: "{{ node01_name }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Modify Service Processor Network ipv6
+  na_ontap_service_processor_network:
+    state: present
+    address_type: ipv6
+    is_enabled: false
+    dhcp: none
+    node: "{{ node01_name }}"
+    ip_address: 0::0
+    prefix_length: 64
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false  
+- name: Modify Service Processor Network ipv4
+  na_ontap_service_processor_network:
+    state: present
+    address_type: ipv4
+    is_enabled: false
+    dhcp: none
+    node: "{{ node01_name }}"
+    ip_address: 0.0.0.0
+    netmask: 255.255.255.0
+    gateway_ip_address: 0.0.0.0
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Set SSH Ciphers and Algorithims
+  na_ontap_command:
+    command: ['security ssh modify -vserver "{{ admin_vserver }}" -key-exchange-algorithms diffie-hellman-group-exchange-sha256 -ciphers aes256-ctr,aes192-ctr,aes128-ctr,aes128-gcm,aes256-gcm']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Mgmt Firewall Policy HTTP Deny
+  na_ontap_firewall_policy:
+    vserver: "{{ admin_vserver }}"
+    state: present
+    node: "{{ node01_name }}"
+    enable: enable
+    service: http
+    allow_list: "127.0.0.1/32,::1/128"
+    logging: enable
+    policy: secure_mgmt
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Mgmt Firewall Policy DNS Allow CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ admin_vserver }}" -policy secure_mgmt -service dns -allow-list "{{ fw_dns_allow_ip }}"']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Mgmt LIF Services HTTPS Deny CLI
+  na_ontap_command:
+    command: ['network interface service-policy create -policy secure_mgmt -allowed-addresses 127.0.0.1/32, ::1/128 -vserver "{{ admin_vserver }}" -services management-https']
+    privilege: advanced    
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Mgmt LIF Services SSH Allow CLI
+  na_ontap_command:
+    command: ['network interface service-policy add-service -vserver "{{ admin_vserver }}" -policy secure_mgmt -services management-ssh -allowed-addresses "{{ fw_ssh_allow_ip }}"']
+    privilege: advanced
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Mgmt LIF Services core-management Allow CLI
+  na_ontap_command:
+    command: ['network interface service-policy add-service -vserver "{{ admin_vserver }}" -policy secure_mgmt -services management-core -allowed-addresses "{{ core_mgmt_allow_ip }}"']
+    privilege: advanced
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Mgmt Firewall Policy NDMP Deny CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ admin_vserver }}" -policy secure_mgmt -service ndmp -allow-list 127.0.0.1/32, ::1/128']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Mgmt Firewall Policy RSH Deny CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ admin_vserver }}" -policy secure_mgmt -service rsh -allow-list 127.0.0.1/32, ::1/128']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Mgmt Firewall Policy SNMP Deny CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ admin_vserver }}" -policy secure_mgmt -service snmp -allow-list 127.0.0.1/32, ::1/128']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Mgmt Firewall Policy TELNET Deny CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ admin_vserver }}" -policy secure_mgmt -service telnet -allow-list 127.0.0.1/32, ::1/128']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Mgmt Firewall Policy NTP Allow CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ admin_vserver }}" -policy secure_mgmt -service ntp -allow-list "{{ fw_ntp_allow_ip  }}"']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Assign Secure Mgmt LIF Services Policy to Node 01 Managment CLI
+  na_ontap_command:
+    command: ['net interface modify -vserver "{{ admin_vserver }}" -lif "{{ node01_mgmt_lif_name }}" -service-policy secure_mgmt']
+    privilege: advanced
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Assign Mgmt FW Policy to Node 01 Management
+  na_ontap_interface:
+    state: present
+    interface_name: "{{ node01_mgmt_lif_name  }}"
+    firewall_policy: secure_mgmt
+    vserver: "{{ admin_vserver }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Create Domain Access SVM
+  na_ontap_svm:
+    state: present
+    name: "{{ domain_access_vserver  }}"
+    root_volume: "{{ da_root_vol_name }}"
+    root_volume_aggregate: "{{ da_root_vol_aggr_name }}"
+    root_volume_security_style: mixed
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: AD_DA Firewall Policy HTTP Deny
+  na_ontap_firewall_policy:
+    vserver: "{{ domain_access_vserver }}"
+    enable: enable
+    node: "{{ node01_name }}"
+    service: http
+    allow_list: "127.0.0.1/32,::1/128"
+    logging: enable
+    policy: domain_access
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+    state: present
+- name: AD_DA Firewall Policy DNS Allow CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ domain_access_vserver }}" -policy domain_access -service dns -allow-list "{{ fw_dns_allow_ip }}"']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: AD_DA LIF Services HTTPS Deny CLI
+  na_ontap_command:
+    command: ['network interface service-policy create -policy domain_access -allowed-addresses 127.0.0.1/32, ::1/128 -vserver "{{ domain_access_vserver }}" -services management-https']
+    privilege: advanced
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: AD_DA Firewall Policy NDMP Deny CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ domain_access_vserver }}" -policy domain_access -service ndmp -allow-list 127.0.0.1/32, ::1/128']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: AD_DA Firewall Policy RSH Deny CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ domain_access_vserver }}" -policy domain_access -service rsh -allow-list 127.0.0.1/32, ::1/128']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: AD_DA Firewall Policy SNMP Deny CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ domain_access_vserver }}" -policy domain_access -service snmp -allow-list 127.0.0.1/32, ::1/128']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: AD_DA Firewall Policy TELNET Deny CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ domain_access_vserver }}" -policy domain_access -service telnet -allow-list 127.0.0.1/32, ::1/128']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: AD_DA Firewall Policy NTP Allow CLI
+  na_ontap_command:
+    command: ['firewall policy create -vserver "{{ domain_access_vserver }}" -policy domain_access -service ntp -allow-list "{{ fw_ntp_allow_ip  }}"']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: AD_DA LIF Services SSH Deny CLI
+  na_ontap_command:
+    command: ['network interface service-policy add-service -vserver "{{ domain_access_vserver }}" -policy domain_access -service management-ssh -allowed-addresses 127.0.0.1/32, ::1/128']
+    privilege: advanced
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: AD_DA LIF Services data-cifs Allow CLI
+  na_ontap_command:
+    command: ['network interface service-policy add-service -vserver "{{ domain_access_vserver }}" -policy domain_access -service data_core -allowed-addresses "{{ data_core_cifs_allow_ip }}"']
+    privilege: advanced
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Create AD_DA LIF Failover Group Node01 Target CLI
+  na_ontap_command:
+    command: ['network interface failover-groups create -vserver "{{ domain_access_vserver }}" -failover-group da_fail_grp1 -targets "{{ node01_da_failover_target_port }}"']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Create AD_DA LIF Failover Group Node02 Target CLI
+  na_ontap_command:
+    command: ['network interface failover-groups create -vserver "{{ domain_access_vserver }}" -failover-group da_fail_grp1 -targets "{{ node02_da_failover_target_port }}"']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Create AD_DA LIF
+  na_ontap_interface:
+    state: present
+    interface_name: lif_domain_access
+    role: data
+    protocols: cifs
+    home_node: "{{ node01_name }}"
+    home_port: "{{ node01_da_lif_home_port }}"
+    address: "{{ lif_da_ip }}"
+    netmask: "{{ lif_da_mask }}"
+    admin_status: up
+    firewall_policy: domain_access
+    is_auto_revert: true
+    vserver: "{{ domain_access_vserver }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Assign AD_DA LIF Services Policy to domain access Lif CLI
+  na_ontap_command:
+    command: ['net interface modify -vserver "{{ domain_access_vserver }}" -lif lif_domain_access -service-policy domain_access']
+    privilege: advanced
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Add AD_DA LIF to Failover Group da_fail_grp1 CLI
+  na_ontap_command:
+    command: ['network interface modify -vserver "{{ domain_access_vserver }}" -lif lif_domain_access -failover-group da_fail_grp1']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Add AD_DA DNS Name Server IP address
+  na_ontap_dns:
+    state: present
+    vserver: "{{ domain_access_vserver }}"
+    domains: "{{ da_dns_domain_name }}"
+    nameservers: "{{ da_dns_ip }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Join AD_DA SVM to CIFS Domain
+  na_ontap_cifs_server:
+    state: present
+    cifs_server_name: "{{ da_cifs_server_name  }}"
+    vserver: "{{ domain_access_vserver }}"
+    admin_password: "{{ da_ad_domain_passwd }}"
+    admin_user_name: "{{ da_ad_domain_user_name }}"
+    domain: "{{ da_dns_domain_name }}"
+    service_state: started
+    ou: "{{ da_ad_ou_name }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Enable Domain Tunnel Login for DA SVM CLI
+  na_ontap_command:
+    command: ['security login domain-tunnel create -vserver "{{ domain_access_vserver }}"']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Create NTP server
+  na_ontap_ntp:
+    state: present
+    version: auto
+    server_name: "{{ ntp_server_ip }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Modify SSH timeouts CLI
+  na_ontap_command:
+    command: ['system timeout modify -timeout 10']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Add Syslog Server CLI
+  na_ontap_command:
+    command: ['event destination modify -name allevents -syslog "{{ syslog_server }}"']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Send all EMS events to Syslog Server CLI
+  na_ontap_command:
+    command: ['event route add-destinations -messagename * -destinations allevents']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Create admin_ssh default
+  na_ontap_user_role:
+    state: present
+    name: admin_ssh
+    command_directory_name: DEFAULT
+    access_level: all
+    vserver: "{{ admin_vserver }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Create admin_ssh SP deny
+  na_ontap_user_role:
+    state: present
+    name: admin_ssh
+    command_directory_name: system node service-processor
+    access_level: none
+    vserver: "{{ admin_vserver }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Modify Admin SSH role CLI
+  na_ontap_command:
+    command: ['security login role config modify -role admin_ssh -vserver "{{ admin_vserver }}" -username-alphanum disabled -passwd-minlength 14 -passwd-alphanum enabled -passwd-min-special-chars 1 -passwd-expirty-time 60 -require-initial-passwd-update enabled -max-failed-login-attempts 3 -lockout-duration 60 -disallwed-reuse 24 -change-delay 1 -username-minlength 4']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Create Emergency User for Console access
+  na_ontap_user:
+    state: present
+    name: "{{ emergency_user_name }}"
+    application: console
+    authentication_method: password
+    set_password: "{{ emergency_user_password }}"
+    lock_user: True
+    role_name: admin
+    vserver: "{{ admin_vserver }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Add Emergency User for SP access
+  na_ontap_user:
+    state: present
+    name: "{{ emergency_user_name }}"
+    application: service-processor
+    authentication_method: password
+    set_password: "{{ emergency_user_password }}"
+    lock_user: True
+    role_name: admin
+    vserver: "{{ admin_vserver }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Create AD DA User
+  na_ontap_user:
+    state: present
+    name: "{{ ad_da_user_name }}"
+    application: ssh
+    authentication_method: domain
+    set_password: "{{ emergency_user_password }}"
+    lock_user: True
+    role_name: admin_ssh
+    vserver: "{{ admin_vserver }}"
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
+- name: Disable Web Access
+  na_ontap_command:
+    command: ['security login lock -vserver "{{ admin_vserver }}" -username admin']
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    https: true
+    validate_certs: false
