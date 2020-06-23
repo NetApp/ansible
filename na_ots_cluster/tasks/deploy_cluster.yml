@@ -35,5 +35,4 @@
     job_id: "{{ cluster_deploy_response.json.job.id }}"
     job_retries: "{{ monitor_deploy_retries }}"
     job_delay: "{{ monitor_deploy_delay }}"
-  when:
-    - monitor_deploy_job
+  when: monitor_deploy_job|bool
