@@ -1,0 +1,14 @@
+---
+# defaults file for nar_solidfire_sds_compliance
+
+# path nar_solidfire_sds_compliance will log compliance reports default is 
+# adjacent to playbook execution
+sf_compliance_report_dir: "{{ playbook_dir }}"
+
+# path to the individual report files generated per host
+sf_compliance_report_path: "{{ sf_compliance_report_dir }}/solidfire_sds_report_{{ ansible_hostname }}_\
+{{ ansible_date_time.iso8601_basic_short }}.yaml"
+
+# setting sf_print_report to false will suppress printing the report to 
+# standard out but will still log to compliance_report_path
+sf_print_report: true

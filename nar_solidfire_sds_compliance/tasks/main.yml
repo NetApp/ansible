@@ -1,0 +1,16 @@
+---
+# tasks file for nar_solidfire_sds_compliance
+
+- name: Ensure custom fact scripts are installed
+  include_tasks: custom-facts.yml
+
+- name: "Re-run setup to use custom facts"
+  setup:
+    gather_subset: all
+  become: True
+
+- name: "Check SolidFire Compliance"
+  include_tasks: ensure-compliance.yml
+
+- name: "Clean up installed custom fact files"
+  include_tasks: clean-facts.yml

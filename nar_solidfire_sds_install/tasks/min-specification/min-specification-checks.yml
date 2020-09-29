@@ -1,0 +1,68 @@
+---
+# Use this to set the language
+- set_fact:
+    na_sf_language: 'en-us'
+  when: >
+    na_sf_language is undefined or
+    (na_sf_language is defined and na_sf_language != 'en-us')
+  no_log: True
+
+- set_fact:
+    na_sf_default_check_path: "./"
+  when: na_sf_default_check_path is undefined
+  no_log: True
+
+- name: "Ensure we have loaded the default messages ({{ na_sf_language }})"
+  include_vars: "{{ na_sf_default_check_path }}/min-specification-messages-{{ na_sf_language }}.yml"
+  no_log: True
+
+- name: "Ensure we have loaded extra {{ na_sf_language }} messages (if applicable)"
+  include_vars: "{{ na_sf_extra_checks_path }}/extra-messages-{{ na_sf_language }}.yml"
+  when: na_sf_extra_checks_path is defined
+  no_log: True
+
+- name: Ensure we have loaded the default requirements
+  include_vars: "{{ na_sf_default_check_path }}/min-specification-rules.yml"
+  no_log: True
+
+- name: Ensure we have loaded all requirements
+  include_vars: "{{ na_sf_extra_checks_path }}/min-specification-rules.yml"
+  when: na_sf_extra_checks_path is defined and na_sf_extra_checks_path
+  no_log: True
+
+# These are the loops that does the real work
+# The types of checks to perform are a list defined in the min_specification-rules.yml file
+# OR in the host/group variables for the nodes where extra checks will be performed
+#
+# This means that someone calling this task list can add additional checks and report on them
+# See the README.md file for more information
+- name: Ensure we run the minimum specification checks
+  include_tasks: "{{ na_sf_default_check_path }}/{{ na_sf_default_check_prefix }}-checks.yml"
+  loop_control:
+    loop_var: na_sf_default_check_prefix
+  loop: "{{ na_sf_default_checks|default(['cpu', 'storage', 'os']) }}"
+
+- name: Ensure we run any extra checks
+  when: sf_extra_checks_path is defined and sf_extra_checks_path
+  block:
+    - include_tasks: "{{ sf_extra_checks_path }}/{{ na_sf_extra_check_prefix }}-checks.yml"
+      loop_control:
+        loop_var: na_sf_extra_check_prefix
+      loop: "{{ na_sf_extra_checks }}"
+      when: >
+        na_sf_extra_checks_path is defined and
+        (na_sf_extra_checks is defined and na_sf_extra_checks|length > 0)
+# In case someone specifies a check file that doesn't exist
+  rescue:
+    - fail:
+        msg: "Unable to run/load the requested checks"
+
+
+- name: Ensure we loaded the report handler
+  include_tasks: "{{ na_sf_default_check_path }}/report.yml"
+
+- name: Ensure we load a report for the extra checks
+  include_tasks: "{{ na_sf_extra_checks_path }}/report.yml"
+  when: >
+    na_sf_extra_checks_path is defined and
+    (na_sf_extra_checks is defined and na_sf_extra_checks|length > 0)

@@ -1,0 +1,64 @@
+---
+####################################
+# Default settings used by the role:
+####################################
+#
+# Name of the file to use if doing local file install
+#
+na_sf_filename: "{{ solidfire_element_rpm | basename }}"
+#
+# Whether to validate SSL/TLS certificates (yes, we should)
+na_sf_validate_certs: True
+#
+# Whether to use the on-node proxy settings (applies to target node)
+na_sf_use_proxy: False
+#
+# The target state for the `solidfire` systemd service
+na_sf_sds_service_state: "started"
+##############################################
+# Platform specific variables (see README.md)
+##############################################
+#
+# URL or path to the RPM being installed
+# solidfire_element_rpm: >-
+#    "http://<server>/<dest>/solidfire-element-<version>-1.el{7,8}.x86_64.rpm"
+#
+# Management Interface (MIP)
+#
+# mgmt_iface: team0
+#
+# Storage (iSCSI) Interface (SIP)
+#
+# storage_iface: team0
+#
+# Devices to use to store data (user data)
+#
+# storage_devices:
+#   - /dev/nvme1n1
+#   - /dev/nvme2n1
+#   - /dev/nvme3n1
+#   - /dev/nvme4n1
+#   - /dev/nvme5n1
+#   - /dev/nvme6n1
+#   - /dev/nvme8n1
+#   - /dev/nvme9n1
+#   - /dev/nvme10n1
+#   - /dev/nvme11n1
+#
+# The device(s) to use for the SF cache
+# cache_devices:
+#   - /dev/nvme0n1
+
+# List of extra Minimum Specification Checks to perform
+#
+na_sf_extra_checks: []
+#
+# Supports language specific message files for the Minimum Specification Checker
+#
+na_sf_language: 'en-us'
+
+# Path to any extra checks to run.
+# This is also where custom messages and custom reports are expected to be found
+#
+# The specified path needs to be relative, starting from nar_solidfire_sds_install/tasks
+# na_sf_extra_checks_path:

@@ -1,0 +1,27 @@
+---
+- name: "Check SolidFire Compliance"
+  delegate_to: localhost
+
+  block:
+    - name: Ensure the system has the required python libraries
+      pip:
+        name: [ 'ansible>=2.9', 'jmespath==0.10.0', 'pyyaml>=5.3.1' ]
+        state: present
+    - na_compliance:
+        compliance_file: "{{ role_path }}/files/sf_sds_compliance_rules.yaml"
+        facts: "{{ ansible_facts }}"
+        report_path: "{{ sf_compliance_report_path }}"
+      register: sf_sds_compliance_result
+
+    - fail:
+        msg: "{{ ansible_hostname }} is not compliant"
+      when: not sf_sds_compliance_result.compliant
+
+    - debug:
+        msg: "{{ ansible_hostname }} is compliant"
+      when: sf_sds_compliance_result.compliant
+
+  always:
+    - debug:
+        msg: "{{ sf_sds_compliance_result.report }}"
+      when: sf_print_report

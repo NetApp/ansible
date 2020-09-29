@@ -1,0 +1,67 @@
+---
+# Test all required variables for presence and value
+- name: Ensure the required minimum version of Ansible is being used
+  delegate_to: localhost
+  assert:
+    that:
+      - ansible_version['full'] is version('2.9.0', '>=')
+    fail_msg: >
+      "Error: Please upgrade the controller to a supported version of Ansible, i.e. >= 2.9.0"
+  tags:
+    - always
+
+- name: Ensure we can find the SolidFire Enterprise SDS package to install
+  fail:
+    msg: "Configure the SolidFire eSDS RPM location (solidfire_element_rpm)"
+  when: solidfire_element_rpm is undefined or not solidfire_element_rpm
+
+- name: Ensure the SolidFire eSDS RPM file name is defined
+  fail:
+    msg: "The na_sf_filename variable has not been configured"
+  when: na_sf_filename is undefined or not na_sf_filename
+
+- name: Ensure the SolidFire eSDS RPM is available for download
+  when: >
+    solidfire_element_rpm is defined and solidfire_element_rpm is match( 'http|ftp' )
+  uri:
+    url: "{{ solidfire_element_rpm }}"
+    method: HEAD
+    validate_certs: "{{ na_sf_validate_certs | bool }}"
+    use_proxy: "{{ na_sf_use_proxy | bool }}"
+#    status_code: 200
+    force: yes
+    follow_redirects: safe
+  register: rpm_test
+  # We'll fail the role if status is unexpected
+  failed_when: rpm_test.status is undefined or rpm_test.status >= 400
+
+- name: Ensure we have the management interface specified
+  fail:
+    msg: "The mgmt_iface variable has not been defined"
+  when: mgmt_iface is undefined or not mgmt_iface
+
+- name: Ensure we have the storage interface specified
+  fail:
+    msg: "The storage_iface variable has not been defined"
+  when: storage_iface is undefined or not storage_iface
+
+- name: Ensure we have the data (storage) device list defined
+  fail:
+    msg: "The storage_devices variable has not been defined"
+  when: storage_devices is undefined or not storage_devices
+
+- name: Ensure we have enough data (storage) devices listed
+  fail:
+    msg: "Not enough storage devices included in the storage_devices list"
+  when: storage_devices is undefined or storage_devices|length < 2
+
+- name: Ensure we have the cache device list defined
+  fail:
+    msg: "The cache_devices variable has not been defined"
+  when: cache_devices is undefined or not cache_devices
+
+# FIXME: This needs to be changed if Element ever supports > 1 cache devices
+- name: Ensure we have the right number of cache devices listed
+  fail:
+    msg: "Incorrect number of cache devices listed. Should be a single device, in a list format"
+  when: cache_devices is undefined or cache_devices|length != 1

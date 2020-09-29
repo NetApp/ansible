@@ -1,0 +1,12 @@
+#! /bin/bash
+
+# This gathers firmware versions from nvme drives for use in custom facts
+set -e
+
+echo -n '['
+
+for i in {0..9}; do
+    echo -n ' "'$(cat /sys/block/nvme${i}n1/device/firmware_rev)'",' 
+done | sed 's/.$//'
+
+echo " ]"

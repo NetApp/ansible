@@ -1,0 +1,9 @@
+---
+- name: Make sure we use the updated NetApp eSDS configuration file
+  template:
+    src: solidfire-eSDS.conf.j2
+    dest: /opt/sf/sf_sds_config.yaml
+    owner: root
+    group: root
+    mode: 0644
+  become: True

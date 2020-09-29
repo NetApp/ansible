@@ -1,0 +1,258 @@
+---
+# Make sure the host platform has enough free RAM to support the # of drives configured
+# Use formula from config-gen to identify the correct amount (Unless system is a triton,
+# then we have to be a bit more lenient)
+#
+
+# Set default values and prepare list variables
+# Also get the (probable) list of storage devices for the node
+- set_fact:
+    sf_storage_dev_count_error: True
+    sf_storage_data_dev_count_error: True
+    sf_storage_cache_dev_count_error: True
+    sf_memory_insufficient_error: False
+    sf_storage_cache_device_invalid: False
+    sf_storage_data_device_invalid: False
+    sf_found_cache_devices: []
+    sf_found_data_devices: []
+    sf_disk_list: []
+    sf_node_dev_ids: []
+    sf_node_dev_uuids: []
+    sf_by_id_rawdevs: []
+    sf_by_uuid_rawdevs: []
+    sf_storage_dev_list: "{{
+      sf_node_facts['devices'].keys()
+      |map('regex_search', sf_device_regex)
+      |select('string')
+      |list
+      }}"
+  no_log: True
+
+# Using raw devices listed in the configured device list (from sf_sds_config.yaml)
+- set_fact:
+    sf_disk_list: "{{ sf_disk_list + [(sf_conf_dev|basename)] }}"
+  when: (sf_conf_dev|basename) in sf_storage_dev_list
+  loop_control:
+    loop_var: sf_conf_dev
+  loop: "{{ storage_devices }}"
+  no_log: True
+
+# Look through the storage_devices list and add anything using by-id that wasn't specified
+# as a raw device name - IF it isn't already present in sf_disk_list
+- set_fact:
+    sf_by_id_rawdevs: "{{ sf_by_id_rawdevs + [item[1].key] }}"
+  when: >
+    ((item[0]|basename) in (item[1]['value']|select('match', (item[0]|basename))|list)) and
+    (item[1].key in sf_storage_dev_list and item[1].key not in sf_disk_list)
+  with_nested:
+    - "{{ storage_devices }}"
+    - "{{ sf_node_facts['device_links']['ids']|dict2items }}"
+  no_log: True
+
+# Look through the storage_devices list and add anything using by-uuid that wasn't specified
+# as a raw device name - IF it isn't already present in sf_disk_list
+- set_fact:
+    sf_by_uuid_rawdevs: "{{ sf_by_uuid_rawdevs + [item[1].key] }}"
+  when: >
+    (item[0]|basename) in (item[1]['value']|select('match', (item[0]|basename))|list) and
+    (item[1].key in sf_storage_dev_list and item[1].key not in sf_disk_list)
+  with_nested:
+    - "{{ storage_devices }}"
+    - "{{ sf_node_facts['device_links']['uuids']|dict2items }}"
+  no_log: True
+
+# Consolidate the list of configured device names (raw + by-id + by-uuid in sf_sds_config.yaml)
+- set_fact:
+    sf_disk_list: "{{ (sf_disk_list + sf_by_id_rawdevs + sf_by_uuid_rawdevs) | unique }}"
+  no_log: True
+
+# Only include the device in the calculation if it's in the list
+# and it doesn't have any partitions defined
+- set_fact:
+    # Calculate the storage capacity in bytes
+    disk_size: "{{ (sf_drive['value']['sectors']|int) * (sf_drive['value']['sectorsize']|int) }}"
+  when: >
+    sf_drive.key in sf_disk_list and
+    not sf_node_facts['devices'][sf_drive.key].partitions
+  loop_control:
+    loop_var: sf_drive
+  # Looping through the found devices on the host
+  with_dict: "{{ sf_node_facts['devices'] }}"
+  register: sf_disk_sizes
+  no_log: True
+
+# Extract and add the drive sizes into a total capacity
+- set_fact:
+    sf_node_storage_configed: "{{ sf_disk_sizes['results']
+    | selectattr('ansible_facts', 'defined')
+    | map(attribute='ansible_facts.disk_size')
+    | map('int')
+    | sum(start=0) }}"
+  no_log: True
+
+# Save all devices on the node (raw device names w/o the `/dev` prefix)
+- set_fact:
+    sf_node_devices: "{{ sf_node_facts['devices'].keys()|list }}"
+  no_log: True
+
+# Add list of disk devices for comparison with by-id paths
+- set_fact:
+    sf_node_dev_ids: "{{ sf_node_dev_ids + sf_node_facts['devices'][device_name]['links']['ids'] }}"
+  when: sf_node_facts['devices'][device_name] is defined and
+    (sf_node_facts['devices'][device_name]['partitions']|length|int) == 0
+  loop_control:
+    loop_var: device_name
+  loop: "{{ sf_node_facts['device_links']['ids'].keys()|list }}"
+  no_log: True
+
+# Add list of disk devices for comparison with by-uuid paths
+- set_fact:
+    sf_node_dev_uuids: "{{ sf_node_dev_uuids + sf_node_facts['device_links']['uuids'][device_name] }}"
+  loop_control:
+    loop_var: device_name
+  loop: "{{ sf_node_facts['device_links']['uuids'].keys()|list }}"
+  no_log: True
+
+# Figure out how much memory the node has
+- set_fact:
+    sf_available_memory: "{{ ((sf_node_facts['memory_mb']['real']['total']|int) * (sf_mb|int)) }}"
+  no_log: True
+
+# Configure required buffer cache reserve (default)
+- set_fact:
+    sf_buff_cache: "{{ ((sf_default_bcache_reserve|int) * (sf_gb|int)) }}"
+  when: ((sf_available_memory|int) >= (300 * (sf_gb|int)))
+  no_log: True
+
+# Configure required buffer cache reserve for systems w/between 256 and 300 GB RAM
+- set_fact:
+    sf_buff_cache: "{{ ((sf_lt_300GB_bcache_reserve|int) * (sf_gb|int)) }}"
+  when: ((sf_available_memory|int) >= (256 * (sf_gb|int))) and
+    ((sf_available_memory|int) < (300 * (sf_gb|int)))
+  no_log: True
+
+# Configure required buffer cache reserve for systems w/between 64 and 256 GB RAM
+- set_fact:
+    sf_buff_cache: "{{ ((sf_lt_256GB_bcache_reserve|int) * (sf_gb|int)) }}"
+  when: ((sf_available_memory|int) >= (64 * (sf_gb|int))) and
+    ((sf_available_memory|int) < (256 * (sf_gb|int)))
+  no_log: True
+
+# Configure required buffer cache reserve for systems w/less than 64 GB RAM
+- set_fact:
+    sf_buff_cache: "{{ ((sf_lt_64GB_bcache_reserve|int) * (sf_gb|int)) }}"
+  when: ((sf_available_memory|int) < (64 * (sf_gb|int)))
+  no_log: True
+
+# Figure out the needed memory for this platform (based on storage capacity)
+# and reserved host OS memory + required buffer cache size
+- set_fact:
+    sf_needed_mem: "{{ ((sf_node_storage_configed|int)/(sf_per_drive_mem_ratio|int))+\
+    ((sf_reserved_for_os_mem|int)*(sf_gb|int))+(sf_buff_cache|int) }}"
+  no_log: True
+
+#
+# Now we do the actual tests and inform the user if one of them fails
+#
+- name: Ensure we fail when the node doesn't have enough memory
+  set_fact:
+    sf_memory_insufficient_error: False
+  when: (sf_needed_mem|int) >= (sf_available_memory|int)
+  no_log: True
+
+- set_fact:
+    # Use node device list from the collected fact(s)
+    sf_found_dev_count: "{{ sf_storage_dev_list | length }}"
+    # Combine the device lists from the SolidFire Enterprise SDS
+    # configuration file
+    sf_configured_dev_count: "{{ (cache_devices + storage_devices)|length }}"
+  no_log: True
+
+- name: Ensure we don't fail when the node has enough storage devices configured
+  set_fact:
+    sf_storage_dev_count_error: False
+  when: sf_found_dev_count|int >= sf_storage_dev_count|int
+  no_log: True
+
+- name: Ensure we don't fail when enough data storage devices are configured
+  set_fact:
+    sf_storage_data_dev_count_error: False
+  when: storage_devices is defined and
+    ((storage_devices|length|int) >= (sf_min_data_dev_count|int))
+  no_log: True
+
+- name: Ensure we don't fail when enough cache devices are configured
+  set_fact:
+    sf_storage_cache_dev_count_error: False
+  when: cache_devices is defined and
+    ((cache_devices|length|int) >= (sf_min_cache_dev_count|int))
+  no_log: True
+
+# Make sure we can find the configured cache device(s) in the list of
+# devices on the node
+- name: Ensure we don't fail as long as all configured cache devices are found
+  set_fact:
+    sf_found_cache_devices: "{{ sf_found_cache_devices + [cache_dev] }}"
+  when: cache_devices|length >= 1 and (cache_dev|basename) in sf_node_devices
+  loop_control:
+    loop_var: cache_dev
+  loop: "{{ cache_devices }}"
+  no_log: True
+
+- set_fact:
+    sf_found_cache_devices: "{{ sf_found_cache_devices + [cache_dev] }}"
+  when: cache_devices|length >= 1 and (cache_dev|basename) in sf_node_dev_ids
+  loop_control:
+    loop_var: cache_dev
+  loop: "{{ cache_devices }}"
+  no_log: True
+
+- set_fact:
+    sf_found_cache_devices: "{{ sf_found_cache_devices + [cache_dev] }}"
+  when: cache_devices|length >= 1 and (cache_dev|basename) in sf_node_dev_uuids
+  loop_control:
+    loop_var: cache_dev
+  loop: "{{ cache_devices }}"
+  no_log: True
+
+- set_fact:
+    sf_storage_cache_device_invalid: True
+  when: cache_devices|length >= 1 and
+    sf_found_cache_devices|length != cache_devices|length
+  no_log: True
+
+# Make sure we can find the specified data (storage) devices in the list of
+# devices on the node
+- name: Ensure we don't fail as long as all configured data (storage) devices are found
+  set_fact:
+    sf_found_data_devices: "{{ sf_found_data_devices + [data_dev] }}"
+  when: storage_devices|length|int >= 2 and (data_dev|basename) in sf_node_devices
+  loop_control:
+    loop_var: data_dev
+  loop: "{{ storage_devices }}"
+  no_log: True
+
+- name: Checking for configured storage devices in by-id list
+  set_fact:
+    sf_found_data_devices: "{{ sf_found_data_devices + [data_dev] }}"
+  when: storage_devices|length|int >= 2 and (data_dev|basename) in sf_node_dev_ids
+  loop_control:
+    loop_var: data_dev
+  loop: "{{ storage_devices }}"
+  no_log: True
+
+- name: Checking for configured storage devices in by-UUID list
+  set_fact:
+    sf_found_data_devices: "{{ sf_found_data_devices + [data_dev] }}"
+  when: storage_devices|length|int >= 2 and (data_dev|basename) in sf_node_dev_uuids
+  loop_control:
+    loop_var: data_dev
+  loop: "{{ storage_devices }}"
+  no_log: True
+
+- name: Checking that number of devices found vs configured are the same
+  set_fact:
+    sf_storage_data_device_invalid: True
+  when: storage_devices|length|int >= 2 and
+    sf_found_data_devices|length|int != storage_devices|length|int
+  no_log: True
