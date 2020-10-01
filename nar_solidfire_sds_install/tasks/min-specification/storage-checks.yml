@@ -150,7 +150,7 @@
     sf_needed_mem: "{{ ((sf_node_storage_configed|int)/(sf_per_drive_mem_ratio|int))+\
     ((sf_reserved_for_os_mem|int)*(sf_gb|int))+(sf_buff_cache|int) }}"
   no_log: True
-  
+
 #
 # Now we do the actual tests and inform the user if one of them fails
 #
