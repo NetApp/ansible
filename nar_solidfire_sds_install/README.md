@@ -2,6 +2,7 @@ Installs the SolidFire Enterprise SDS
 =====================================
 
 This role automates the deployment and configuration of the SolidFire eSDS solution.
+Verison 1.1
 
 Requirements
 ------------
@@ -36,6 +37,7 @@ including more information about specific variables that can be configured for t
 | na_sf_allow_derivatives         | no       | Install on RHEL derivatives| Do we allow installation more than RHEL?      |
 |                                 |          |                            | As of now, that means CentOS                  |
 | na_sf_language                  | no       | Default: en-us             | See tasks/min-specification/README.md         |
+| sf_ignore_teamdctl_abrt_cores   | No       | True                       | Ignore teamdctl cores in ABRT                 |
 
 [1] = `http://<server><:port>/<path>/solidfire-element-W.X.Y.Z-N.el{7,8}.x86_64.rpm`
 

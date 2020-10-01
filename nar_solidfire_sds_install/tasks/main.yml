@@ -1,4 +1,8 @@
 ---
+- name: Ensure teamdctl cores are ignored in ABRT 
+  include_tasks: ignore-teamdctl-cores-in-abrt.yml
+  when: sf_ignore_teamdctl_abrt_cores
+
 - name: Ensure we loaded facts for nodes
   setup:
   when: (ansible_facts is undefined or

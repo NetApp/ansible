@@ -147,8 +147,9 @@
 # Figure out the needed memory for this platform (based on storage capacity)
 # and reserved host OS memory + required buffer cache size
 - set_fact:
-    sf_needed_mem: "{{ ((sf_node_storage_configed|int)/(sf_per_drive_mem_ratio|int))+\
-    ((sf_reserved_for_os_mem|int)*(sf_gb|int))+(sf_buff_cache|int) }}"
+    sf_needed_mem: "{{
+    ((sf_node_storage_configed|int)/(sf_per_drive_mem_ratio|int))+\
+    ((sf_reserved_for_os_mem|int)*(sf_gb|int))+(sf_buff_cache|int)}}"
   no_log: True
 
 #
