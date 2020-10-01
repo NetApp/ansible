@@ -62,3 +62,7 @@ na_sf_language: 'en-us'
 #
 # The specified path needs to be relative, starting from nar_solidfire_sds_install/tasks
 # na_sf_extra_checks_path:
+
+# Option to ignore teamdctl cores in ABRT
+# See PE-11171 for more details
+sf_ignore_teamdctl_abrt_cores: True
