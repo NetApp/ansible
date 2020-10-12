@@ -68,21 +68,6 @@ Example Playbook
            - /dev/disk/by-id/<id for sdc>
 ```
 
-Testing the role (Molecule testing)
------------------------------------
-The following test scenarios have been defined for this role:
-
-* default
-* downgrade_attempt
-* min_spec_check_ReadMe
-* min_spec_cpu_tests
-* min_spec_os_tests
-* min_spec_storage_tests
-* min_spec_success
-* real_hardware
-* rhel
-* sidegrade_attempt
-* using_bad_ssl_certs
     
 License
 -------
