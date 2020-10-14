@@ -1,0 +1,92 @@
+---
+# Modularized the check logic to let both the Enable and Disable Maintenance Mode
+# operations use the same checks/error messages/error conditions
+- name: Ensure we record that the cluster cannot let nodes transition
+  set_fact:
+    sf_cluster_error: True
+  when: >
+    request.json.error is defined and
+    request.json.error.name is not undefined and
+    request.json.error.name in (
+      'xUnresolvedClusterFaults',
+      'xNodeIDDoesNotExist'
+    )
+
+- name: Ensure we fail if the cluster can't handle a Maintenance Mode transition
+  fail:
+    msg: "Cluster not ready for upgrade: {{ request.json.error.message }}"
+  when: >
+    (sf_cluster_error is defined and sf_cluster_error) or (
+    request.json.error is defined and
+    request.json.error.name is defined and
+    request.json.error.name in (
+      'xNoTolerance',
+      'xExceededLimit'
+    ))
+
+# We appear to be trying to EnableMaintenanceMode while this target_name
+# is in the process of a DisableMaintenanceMode transition.
+# The logic will loop automatically, but since it's likely this was due
+# to a maintenance operation timeout that was too short, we'll increase its
+# size (time) by 10 minutes to try and avoid doing this again
+- name: Ensure we extend the Maintenance Mode Timeout due to error(s)
+  set_fact:
+    sf_maint_mode_duration: "{{ sf_maint_mode_duration
+      |sf_change_timeout('00:10:00') }}"
+    sf_timeout_updated: True
+  when: >
+    sf_timeout_updated is defined and not sf_timeout_updated and
+    request.json.error is defined and
+    request.json.error.name is defined and
+    request.json.error.name == 'xNotAllowedWhileDisablingMaintenanceMode'
+
+- name: Ensure we loop when node tries to (re)enable maintenance mode while disabling it
+  fail:
+    msg: "Retrying... Have to wait until {{ target_name }}/ID:{{ target_id }} exits maintenance mode"
+  when: >
+    sf_timeout_updated is defined and sf_timeout_updated and
+    request.json.error is defined and
+    request.json.error.name is defined and
+    request.json.error.name == 'xNotAllowedWhileDisablingMaintenanceMode'
+
+# Reset the timeout updater logic
+- set_fact:
+    sf_timeout_updated: False
+  when: >
+    request.json.error is defined and
+    request.json.error.name is defined and
+    request.json.error.name != 'xNotAllowedWhileDisablingMaintenanceMode'
+  no_log: True
+
+- name: Ensure we loop if another node is (still?) in maintenance mode
+  fail:
+    msg: "Retrying... Another node in maintenance mode!."
+  when: >
+    request.json.error is defined and
+    request.json.error.name is defined and
+    request.json.error.name == 'xAlreadyExists'
+
+- name: Ensure we loop if this node is still recovering from maintenance mode
+  fail:
+    msg: "Retrying... Still waiting for {{ target_name }}/ID:{{ target_id }} to return from maintenance mode"
+  when: >
+    request.json.result is defined and
+    request.json.result.currentMode is defined and
+    request.json.result.currentMode == 'RecoveringFromMaintenance'
+
+- name: "Ensure we loop if {{ target_name }}/ID:{{ target_id }} is still preparing to enter maintenance mode"
+  fail:
+    msg: "Retrying... Still waiting for {{ target_name }}/ID:{{ target_id }} to enter maintenance mode"
+  when: >
+    request.json.result is defined and
+    request.json.result.currentMode is defined and
+    request.json.result.currentMode == 'PreparingForMaintenance'
+
+- name: "Ensure we loop if {{ target_name }}/ID:{{ target_id }} didn't reach {{ target_status }}"
+  fail:
+    msg: "Retrying... {{ target_name }} has not reached {{ target_status }}"
+  when: >
+    request.json.result is defined and
+    request.json.result.requestedMode is defined and
+    request.json.result.requestedMode == target_status and
+    request.json.result.requestedMode != request.json.result.currentMode

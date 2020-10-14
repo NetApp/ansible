@@ -2,7 +2,7 @@ Installs the SolidFire Enterprise SDS
 =====================================
 
 This role automates the deployment and configuration of the SolidFire eSDS solution.
-Verison 1.1
+Version 1.2
 
 Requirements
 ------------
@@ -38,6 +38,7 @@ including more information about specific variables that can be configured for t
 |                                 |          |                            | As of now, that means CentOS                  |
 | na_sf_language                  | no       | Default: en-us             | See tasks/min-specification/README.md         |
 | sf_ignore_teamdctl_abrt_cores   | No       | True                       | Ignore teamdctl cores in ABRT                 |
+=======
 
 [1] = `http://<server><:port>/<path>/solidfire-element-W.X.Y.Z-N.el{7,8}.x86_64.rpm`
 
@@ -67,22 +68,6 @@ Example Playbook
          cache_devices:
            - /dev/disk/by-id/<id for sdc>
 ```
-
-Testing the role (Molecule testing)
------------------------------------
-The following test scenarios have been defined for this role:
-
-* default
-* downgrade_attempt
-* min_spec_check_ReadMe
-* min_spec_cpu_tests
-* min_spec_os_tests
-* min_spec_storage_tests
-* min_spec_success
-* real_hardware
-* rhel
-* sidegrade_attempt
-* using_bad_ssl_certs
     
 License
 -------
