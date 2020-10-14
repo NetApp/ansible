@@ -1,0 +1,26 @@
+---
+# We only want to upgrade members of the specified cluster
+# (for this inventory group)
+- name: Ensure we have the the Node info we need from the eSDS Cluster
+  uri:
+    url: "https://{{ sf_mgmt_virt_ip }}:443/json-rpc/{{ sf_api_version }}"
+    method: POST
+    return_content: True
+    follow_redirects: safe
+    force: True
+    url_username: "{{ sf_cluster_admin_username }}"
+    url_password: "{{ sf_cluster_admin_passwd }}"
+    force_basic_auth: true
+    timeout: "{{ sf_cluster_connect_timeout }}"
+    body_format: json
+    validate_certs: "{{ sf_validate_certs | default(True) | bool }}"
+    use_proxy: "{{ sf_use_proxy | default(False) | bool }}"
+    body:
+      method: 'ListAllNodes'
+  register: sf_cluster_info
+
+- name: Ensure we saved the node info for the cluster (ID and name)
+  failed_when: sf_cluster_info.json.result.nodes is not defined
+  set_fact:
+      sf_node_ids: "{{ sf_cluster_info.json.result.nodes | sf_get_node_ids }}"
+      sf_cluster_node_data: "{{ sf_cluster_info.json.result.nodes }}"

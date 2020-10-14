@@ -1,0 +1,122 @@
+---
+# Test all required variables for presence and value
+# Will also make sure we know what version of the RPM the nodes are on right now
+# plus figure out which version of the RPM they're being asked to upgrade to
+#
+# By default, because an Ansible role needs to be idempotent, we will not
+# fail the role for a side-grade (or downgrade) unless explicitly told to do so
+# by the user.
+- name: Ensure the required minimum version of Ansible is being used
+  delegate_to: localhost
+  assert:
+    that:
+      - ansible_version['full'] is version('2.9.0', '>=')
+    fail_msg: >
+      "Error: Please upgrade the controller to a supported version of Ansible, i.e. >= 2.9.0"
+  tags:
+    - always
+
+- name: Ensure we fail if the SolidFire Enterprise SDS package isn't specified
+  fail:
+    msg: "The SolidFire eSDS RPM location variable has not been configured (solidfire_element_rpm)"
+  when: solidfire_element_rpm is undefined or not solidfire_element_rpm
+
+- name: Ensure we fail if the Management Virtual IP address is bad/missing
+  fail:
+    msg: "Management Virtual IP address (sf_mgmt_virt_ip) is not a valid IP address"
+  when: sf_mgmt_virt_ip is undefined or not sf_mgmt_virt_ip|ipaddr
+
+- name: Ensure we fail if the cluster administrator username is missing
+  fail:
+    msg: "The Cluster Administrator's username is not specified (sf_cluster_admin_username)"
+  when: sf_cluster_admin_username is undefined or not sf_cluster_admin_username
+  no_log: True
+
+- name: Ensure we fail if the cluster administrator password is missing
+  fail:
+    msg: "The Cluster Administrator's password is not specified (sf_cluster_admin_passwd)"
+  when: sf_cluster_admin_passwd is undefined or not sf_cluster_admin_passwd
+  no_log: True
+
+- name: Ensure we fail when the SolidFire eSDS API timeout isn't configured
+  fail:
+    msg: "The API timeout value is not specified (sf_cluster_connect_timeout)"
+  when: >
+    sf_cluster_connect_timeout is undefined or
+    not sf_cluster_connect_timeout or
+    sf_cluster_connect_timeout|int <= 0
+  no_log: True
+
+- name: Ensure we fail when the API version to use isn't defined
+  fail:
+    msg: "The API version is not specified (sf_api_version)"
+  when: sf_api_version is undefined or not sf_api_version
+  no_log: True
+
+- name: Ensure we fail if the max duration of Maintenance Mode for a node isn't defined
+  fail:
+    msg: "The timeout value for node maintenance mode is not defined (sf_maint_mode_duration)"
+  when: sf_maint_mode_duration is undefined or not sf_maint_mode_duration
+  no_log: True
+
+- name: Ensure we fail when we find cluster faults
+  set_fact:
+    yes_i_want_to_ignore_cluster_faults: False
+  when: yes_i_want_to_ignore_cluster_faults is undefined
+  no_log: True
+
+
+- name: Ensure we have the list of installed packages
+  package_facts:
+    manager: auto
+  no_log: True
+
+- name: Ensure we saved the installed RPM version
+  set_fact:
+    sf_current_package_ver: "{{ ansible_facts['packages']['solidfire-element'][0].version }}"
+  when: ansible_facts['packages']['solidfire-element'] is defined
+  no_log: True
+
+- name: Ensure we fail when running an unsupported version
+  fail:
+    msg: "Rolling Upgrades not supported with v{{ sf_current_package_ver }}"
+  when: >
+    sf_current_package_ver is defined and
+    sf_current_package_ver is version( sf_min_required_version, '<' )
+
+- set_fact:
+    sf_regex_repl_1: '^.*-element-(.*)-..el..x86_64.rpm.*$'
+    sf_regex_repl_2: '\1'
+  no_log: True
+
+- name: Make sure we know the version of the requested package
+  set_fact:
+    sf_new_package_ver: "{{ solidfire_element_rpm|regex_replace( sf_regex_repl_1, sf_regex_repl_2 ) }}"
+  failed_when: sf_new_package_ver is undefined or
+    not sf_new_package_ver or
+    sf_new_package_ver is match( 'http|ftp|/' )
+  no_log: True
+
+# This isn't an idempotent operation. It is _NOT_ not something we should be doing in Ansible!
+#
+# That is, unless the admin takes positive action to override our default decision by setting
+# the (I think) somewhat descriptive variable `i_want_to_break_idempotency` to 'True'
+#
+- name: Ensure we fail if trying to downgrade or side-grade
+  fail:
+    msg: "v{{ sf_new_package_ver }} is not an upgrade. Exiting! ({{ solidfire_element_rpm }})"
+  when: >
+    i_want_to_break_idempotency and
+    sf_current_package_ver is defined and
+    sf_current_package_ver is version( sf_new_package_ver, '>=' )
+  no_log: True
+
+- name: Make sure the Management Virtual IP responds
+  delegate_to: localhost
+  run_once: True
+  wait_for:
+    connect_timeout: 5
+    host: "{{ sf_mgmt_virt_ip }}"
+    port: 443
+    timeout: 120
+    state: started
