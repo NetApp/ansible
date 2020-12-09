@@ -15,6 +15,7 @@ na_sf_use_proxy: False
 #
 # The target state for the `solidfire` systemd service
 na_sf_sds_service_state: "started"
+
 ##############################################
 # Platform specific variables (see README.md)
 ##############################################
@@ -48,6 +49,12 @@ na_sf_sds_service_state: "started"
 # The device(s) to use for the SF cache
 # cache_devices:
 #   - /dev/nvme0n1
+
+# Deactivate Min Spec checks
+na_sf_deactivate_checks: False
+
+# Do we allow intallation of other OS than RHEL? As of now that means CentOS.
+na_sf_allow_derivatives: True
 
 # List of extra Minimum Specification Checks to perform
 #

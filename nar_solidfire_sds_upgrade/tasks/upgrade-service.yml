@@ -2,7 +2,6 @@
 # This will only be called if the node was able to enter Maintenance Mode
 # successfully
 - name: "Make sure we upgrade to SolidFire eSDS v{{ sf_new_package_ver }} on {{ target_name }}/{{ target_MIP }}"
-  delegate_to: "{{ target_MIP }}"
   run_once: True
   become: True
   when: >
@@ -22,7 +21,6 @@
     seconds: "{{ sf_wait_delay }}"
 
 - name: "Make sure the service is upgraded and started on {{ target_name }}/{{ target_MIP }}"
-  delegate_to: "{{ target_MIP }}"
   run_once: True
   become: True
   command: systemctl is-active solidfire
@@ -31,4 +29,3 @@
 - fail:
     msg: "Service failed to start properly..."
   when: systemd_status.rc != 0 and systemd_status.stdout in 'active'
-

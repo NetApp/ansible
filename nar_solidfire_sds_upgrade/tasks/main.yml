@@ -40,15 +40,16 @@
     (ansible_hostname and ansible_hostname|sf_get_node_info(sf_cluster_node_data, 'name'))
     )
 
-- name: Make sure we take action if there's a mis-match in the node count for the cluster & the inventory
-  when: sf_node_ids.keys()|length > ansible_play_hosts_all|length
+- name: Make sure we verify whether all cluster nodes are to be upgraded
+  when: sf_node_ids.keys()|length > ansible_play_batch|length
   block:
-    - debug:
-        msg: "Cluster {{ sf_mgmt_virt_ip }} consists of more nodes than what has been specified for upgrade!"
-
-    # Have to explicitly configure the role to NOT terminate the play for this condition!
-    - meta: end_play
-      when: sf_fail_on_inventory_mismatch is defined and sf_fail_on_inventory_mismatch
+    - set_fact:
+        main_upgrade_subset: True
+    - fail:
+        msg: >-
+          Cluster {{ sf_mgmt_virt_ip }} consists {{ sf_node_ids.keys()|length }} nodes but only {{ ansible_play_batch|length }} are for upgrade!
+          If subset upgrade is desired, please set variable sf_allow_cluster_subset_upgrade to True.
+      when: not sf_allow_cluster_subset_upgrade
 
 # We only need to do this once per cluster, so only letting one
 # node perform the operation, once (the controller)
@@ -89,16 +90,6 @@
   when:
     - sf_node_ids is not undefined
 
-#
-# Using the following task definition to do a rolling upgrade of
-# each host in the defined 'sf_cluster_inventory_group' inventory group
-# (The default group is the 'all' group, i.e. all hosts in the inventory file)
-#
-# We expect a single inventory group to include all cluster members
-#
-# We will allow the use of either the node's Management IP address
-# or its hostname as the identifier for a cluster node in the inventory file
-#
 - name: "Ensure we load the upgrade tasks for the cluster"
   include_tasks: upgrade-node.yml
   args:
@@ -112,8 +103,8 @@
     sf_upgrade_node_MIP: "{{ hostvars[node_label]['sf_host_addr'] }}"
   loop_control:
     loop_var: node_label
-  loop: "{{ groups[sf_cluster_inventory_group] }}"
-  when: sf_upgrade_node is defined and sf_upgrade_node
+  loop: "{{ ansible_play_hosts_all }}"
+  when: hostvars[node_label]['sf_host_name'] is defined
 
 # Show the nodes we upgraded successfully
 - name: Ensure we know how many nodes upgraded

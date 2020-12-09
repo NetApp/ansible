@@ -1,4 +1,7 @@
 ---
+- name: "Retrieve installed package info again for {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }}"
+  include_tasks: node-info.yml
+ 
 - name: Make sure we skip a node if it was upgraded already
   delegate_to: "{{ sf_upgrade_node_MIP }}"
   run_once: True
