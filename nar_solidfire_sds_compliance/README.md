@@ -2,7 +2,6 @@ nar_solidfire_sds_compliance
 =========
 
 This role automates validating NetApp compliance for SolidFire eSDS.
-Version 1.1
 
 Requirements
 ------------

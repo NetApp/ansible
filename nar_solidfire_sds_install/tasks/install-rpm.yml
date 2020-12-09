@@ -58,6 +58,7 @@
   yum:
     name: "{{ solidfire_element_rpm_path }}"
     validate_certs: "{{ na_sf_validate_certs }}"
+    disable_gpg_check: True
     state: present
     skip_broken: False
   register: rpm_output

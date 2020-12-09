@@ -1,5 +1,5 @@
 ---
-- name: Ensure teamdctl cores are ignored in ABRT 
+- name: Ensure teamdctl cores are ignored in ABRT
   include_tasks: ignore-teamdctl-cores-in-abrt.yml
   when: sf_ignore_teamdctl_abrt_cores
 

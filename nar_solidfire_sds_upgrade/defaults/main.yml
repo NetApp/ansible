@@ -109,7 +109,6 @@ sf_cluster_error: False
 sf_new_package_ver: None
 sf_current_package_ver: None
 
-
 # Used to load extra arguments for the PIP installer
 # Default is that there are no extra args
 #
@@ -136,24 +135,9 @@ sf_use_proxy: False
 #
 sf_validate_certs: True
 
-# The name of the group that defines the members of the cluster to process in the
-# Ansible inventory.
-#
-# When we created this role we assumed that the inventory group defines the nodes
-# for a _single_ cluster.
-
-# We iterate through the nodes, one at a time during the upgrade. We _will_ make
-# sure the node from the inventory _is_ a member of the specified cluster, before
-# letting it be upgraded (when using this role).
-#
-# It probably(?) makes sense to have one inventory file per cluster for the upgrade!
-#
-sf_cluster_inventory_group: 'all'
-
-#
 # By default, we will end the play if the node count in the inventory is smaller
 # than the node count for the cluster.  In the inverse case, nodes that are not
 # in the cluster, the role will log that they are not being upgraded and
 # upgrade the nodes that are in the cluster.
 #
-sf_fail_on_inventory_mismatch: True
+sf_allow_cluster_subset_upgrade: False

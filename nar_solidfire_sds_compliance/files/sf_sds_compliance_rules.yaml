@@ -26,7 +26,7 @@
 # Processor: ‘2x Intel(R) Xeon(R) Gold 5218’
 # Available Memory: ‘768 GB’
 # Storage Drives: ‘9x 3.84 TB NVMe Drives’
-# Storage Drive FW: ‘HPK1’
+# Storage Drive FW: ‘HPK1’ or 'MPK70H5Q'
 # Cache Device: ‘1x 384 GB Intel Optane SSD’
 # Cache Device FW: ‘4ICSHPK2’
 # Host OS: ‘RHEL Server 7.6 64-bit’
@@ -34,7 +34,7 @@
 # Cluster Management NIC: ‘2x Intel 10G X550T’
 # Storage NIC: ‘2x Mellanox 25G ConnectX-4 Lx’
 
-esds-hpe-dl360-gen10-p0:
+esds-hpe-dl360-gen10-p1:
   rules:
     "Server Instance":
       displayName:
@@ -60,7 +60,7 @@ esds-hpe-dl360-gen10-p0:
         "management_nic_firmware":
           expected: "10.51.3" 
           count: 2
-          query: "ansible_local.sf_nic_details[?driver == `ixgbe`].firmware_version | [?contains(@, `{expected}`)] | length(@) == `{count}`"
+          query: "ansible_local.sf_nic_details[?driver == `ixgbe`].firmware_version | [?contains(`{expected}`, @)] | length(@) == `{count}`"
           actual: "ansible_local.sf_nic_details[?driver == `ixgbe`].firmware_version"
         "storage_nic_firmware":
           expected: "14.26.1040"
@@ -68,14 +68,14 @@ esds-hpe-dl360-gen10-p0:
           query: "ansible_local.sf_nic_details[?driver == `mlx5_core`].firmware_version | [?contains(@, `{expected}`)] | length(@) == `{count}`"
           actual: "ansible_local.sf_nic_details[?driver == `mlx5_core`].firmware_version"
         "storage_drive_firmware":
-          expected: HPK1
+          expected: ["HPK1 ", "MPK70H5Q", "4ICRHPK0"]
           count: 9
-          query: "ansible_local.sf_drive_fw[] | [?contains(@, `{expected}`)] | length(@) == `{count}`"
+          query: "ansible_local.sf_drive_fw[] | [?contains({expected}, @)] | length(@) == `{count}`"
           actual: "ansible_local.sf_drive_fw[]"
         "cache_drive_firmware":
           expected: "4ICSHPK2" 
           count: 1
-          query: "ansible_local.sf_drive_fw[] | [?contains(@, `{expected}`)] | length(@) == `{count}`"
+          query: "ansible_local.sf_drive_fw[] | [?contains(`{expected}`, @)] | length(@) == `{count}`"
           actual: "ansible_local.sf_drive_fw[]"
 
     "Processor":
@@ -92,7 +92,7 @@ esds-hpe-dl360-gen10-p0:
           actual: "processor_count"
         "processor":
           expected: "Intel(R) Xeon(R) Gold 5218 CPU @ 2.30GHz"
-          count: 64 
+          count: 64
           query: "processor | [?contains(@, `{expected}`)] | length(@) == `{count}`"
           actual: "processor"
 
@@ -110,9 +110,9 @@ esds-hpe-dl360-gen10-p0:
         - "9x 3.84 TB NVMe Drives"
       components:
         "storage_drives":
-          expected: "VK003840KWWFP"
+          expected: ["VK003840KWWFP", "MZXL53T8HBLS-000H3", "VO004000KWVUR"]
           count: 9
-          query: "devices.*.model[] | [?contains(@, `{expected}`)] | length(@) == `{count}`"
+          query: "devices.*.model[] | [?contains({expected}, @)] | length(@) == `{count}`"
           actual: "devices.*.model[]"
 
     "Cache Device":
@@ -122,20 +122,20 @@ esds-hpe-dl360-gen10-p0:
         "cache_drive":
           expected: "EO000375KWJUC"
           count: 1
-          query: "devices.*.model[] | [?contains(@, `{expected}`)] | length(@) == `{count}`"
+          query: "devices.*.model[] | [?contains(`{expected}`, @)] | length(@) == `{count}`"
           actual: "devices.*.model[]"
 
     "Host OS":
       displayName: 
-        - "RHEL Server 7.6 64-bit"
+        - "RHEL Server 64-bit"
       components:
         "distribution":
           expected: "RedHat" 
           query: "distribution == `{expected}`"
           actual: "distribution"
         "distribution_version":
-          expected: "7.6" 
-          query: "distribution_version == `\"{expected}\"`"
+          expected: ["7.6", "7.7", "8.2"]
+          query: "contains(`{expected}`, distribution_version)"
           actual: "distribution_version"
         "architecture":
           expected: "x86_64" 
@@ -153,7 +153,7 @@ esds-hpe-dl360-gen10-p0:
         "management_nic":
           expected: "ixgbe"
           count: 2
-          query: "ansible_local.sf_nic_details[].driver | [?contains(@, `{expected}`)] | length(@) == `{count}`"
+          query: "ansible_local.sf_nic_details[].driver | [?contains(`{expected}`, @)] | length(@) == `{count}`"
           actual: "ansible_local.sf_nic_details[].driver"
 
     "Storage NIC":
@@ -163,5 +163,21 @@ esds-hpe-dl360-gen10-p0:
         "storage nic":
           expected: "mlx5_core"
           count: 2
-          query: "ansible_local.sf_nic_details[].driver | [?contains(@, `{expected}`)] | length(@) == `{count}`"
+          query: "ansible_local.sf_nic_details[].driver | [?contains(`{expected}`, @)] | length(@) == `{count}`"
           actual: "ansible_local.sf_nic_details[].driver"
+
+    "Network Interface Name Length":
+      displayName:
+        - "Network interface intended to be used as Management interface should have name length <= 13."
+        - "Similarly, network interface intended to be used as Storage interface should have name length <= 8"
+        - "IGNORE, if the interfaces that failed the checks are not intended to be used as Management/Storage interfaces"
+      components:
+        "Interfaces that are not compliant to be used as Management interface":
+          expected: 0
+          query: "interfaces[?length(@)>=`13`] | length(@) == `{expected}`"
+          actual: "interfaces[?length(@)>=`13`]"
+
+        "Interfaces that are not compliant to be used as Storage interface":
+          expected: 0
+          query: "interfaces[?length(@)>=`8`] | length(@) == `{expected}`"
+          actual: "interfaces[?length(@)>=`8`]"
