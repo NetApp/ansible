@@ -1,0 +1,56 @@
+---
+- debug:
+    msg: "{{ sf_core_count_msg }}"
+  when: sf_cpu_count_error is defined and sf_cpu_count_error
+
+- debug:
+    msg: "{{ sf_cpu_manuf_msg }}"
+  when: sf_cpu_manuf_error is defined and sf_cpu_manuf_error
+
+- debug:
+    msg: "{{ sf_os_distro_msg }}"
+  when: sf_os_unsupported is defined and sf_os_unsupported
+
+- debug:
+    msg: "{{ sf_os_version_msg }}"
+  when: sf_os_version_error is defined and sf_os_version_error
+
+- debug:
+    msg: "{{ sf_storage_dev_count_msg }}"
+  when: sf_storage_dev_count_error is defined and sf_storage_dev_count_error
+
+- debug:
+    msg: "{{ sf_storage_data_count_msg }}"
+  when: sf_storage_data_dev_count_error is defined and sf_storage_data_dev_count_error
+
+- debug:
+    msg: "{{ sf_storage_cache_count_msg }}"
+  when: sf_storage_cache_dev_count_error is defined and sf_storage_cache_dev_count_error
+
+- debug:
+    msg: "{{ sf_storage_cache_device_not_found_msg }}"
+  when: sf_storage_cache_device_invalid is defined and sf_storage_cache_device_invalid
+
+- debug:
+    msg: "{{ sf_storage_data_device_not_found_msg }}"
+  when: sf_storage_data_device_invalid is defined and sf_storage_data_device_invalid
+
+- debug:
+    msg: "{{ sf_storage_not_enough_memory_msg }}"
+  when: sf_memory_insufficient_error is defined and sf_memory_insufficient_error
+
+- fail:
+    msg: "{{ sf_fatal_error_msg }}"
+  when: >
+    (
+    (sf_cpu_count_error is defined and sf_cpu_count_error) or
+    (sf_cpu_manuf_error is defined and sf_cpu_manuf_error) or
+    (sf_os_unsupported is defined and sf_os_unsupported) or
+    (sf_os_version_error is defined and sf_os_version_error) or
+    (sf_storage_dev_count_error is defined and sf_storage_dev_count_error) or
+    (sf_storage_data_dev_count_error is defined and sf_storage_data_dev_count_error) or
+    (sf_storage_cache_dev_count_error is defined and sf_storage_cache_dev_count_error) or
+    (sf_storage_cache_device_invalid is defined and sf_storage_cache_device_invalid) or
+    (sf_storage_data_device_invalid is defined and sf_storage_data_device_invalid) or
+    (sf_memory_insufficient_error is defined and sf_memory_insufficient_error)
+    )

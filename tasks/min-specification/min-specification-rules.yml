@@ -1,0 +1,81 @@
+---
+#
+# Prepare the host facts
+#
+sf_node_devices: "{{ hostvars[inventory_hostname]['ansible_facts']['devices'] }}"
+sf_node_facts: "{{ hostvars[inventory_hostname]['ansible_facts'] }}"
+#
+# Definitions for GB/MB (used in memory calculations)
+# Please DO NOT modify!
+sf_mb: "{{ 1000 * 1024 }}"
+sf_gb: "{{ sf_mb|int * 1000 }}"
+#
+# The reserved memory for the OS buffer cache (specified in Gigabytes)
+# The amount depends on the amount of memory the host has
+# Please do not modify!
+sf_default_bcache_reserve: 72
+sf_lt_300GB_bcache_reserve: 64
+sf_lt_256GB_bcache_reserve: 8
+sf_lt_64GB_bcache_reserve: 1
+#
+# Reserving memory for the host OS (specified in Gigabytes)
+# Current value is 16 GB
+sf_reserved_for_os_mem: 16
+#
+# Extracts nvme and sd* devices to check drive sizes for
+#
+# We exclude `sda` since one of the sd* devices are probably used
+# for the OS and it's most often the very first one...
+#
+# TODO: Fix this regex if the device naming is different!
+#
+sf_device_regex: '^nvme.*$|nvme-.*$|^sd[^a].*$'
+#
+# Regular Expression used to identify the CPU type (Xeon)
+# CPU model (5120) and the speed of the CPU in GHz
+#
+# This data is used by the minimum CPU model test(s)
+# and can be overridden by setting the variable in
+# a role that calls the min_specification-checks.yml task
+# list
+#
+sf_cpu_model_regex: '.*(Xeon).*Gold\s([0-9]{1,4}).*([1-9].[0-9]{1,3})GHz.*'
+#
+####################################################################
+# The min_specification rules we apply during the minimum min_specification check
+####################################################################
+#
+# Minimum required core count to run SolidFire eSDS
+sf_core_count: 6
+#
+# Required CPU types
+sf_cpu_manufacturer: "GenuineIntel"
+#
+# Required CPU architecture
+sf_cpu_arch: "x86_64"
+#
+# Minimum number of devices that are needed
+sf_storage_dev_count: 3
+#
+# The total storage size for now
+sf_node_storage_size: 0
+#
+#
+# Per-drive memory ratio
+sf_per_drive_mem_ratio: 64
+#
+# NIC speed requirements
+sf_mgmt_min_speed: 1000
+sf_storage_min_speed: 10000
+#
+# Operating system info
+sf_os_min_version: "7.6"
+sf_primary_distro:
+  - "RedHat"
+sf_supported_distro_list:
+  - 'RedHat'
+  - 'CentOS'
+
+# Device count minimums
+sf_min_cache_dev_count: 1
+sf_min_data_dev_count: 2

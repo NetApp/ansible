@@ -1,0 +1,23 @@
+---
+# See PE-11171 for details
+- name: "Collect facts about system services"
+  service_facts:
+
+- name: "Verify CCpp.conf exists"
+  stat:
+    path: /etc/abrt/plugins/CCpp.conf
+  register: ccpp_existance
+
+- name: "Ensure teamdctl is added to IgnoredPaths in CCpp.conf"
+  lineinfile:
+    path: /etc/abrt/plugins/CCpp.conf
+    regexp: '^#?IgnoredPaths'
+    line: 'IgnoredPaths = /usr/bin/teamdctl'
+  when: ccpp_existance.stat.exists
+  register: ignorepaths
+
+- name: "Restart service abrtd"
+  service:
+    name: abrtd
+    state: restarted
+  when: (ansible_facts.services["abrtd.service"] is defined and ansible_facts.services["abrtd.service"].state == "running" and ignorepaths.changed)

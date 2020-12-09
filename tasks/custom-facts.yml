@@ -1,0 +1,17 @@
+---
+# Searching for information not provided by default in facts
+
+- name: "Create custom fact directory"
+  file:
+    path: "/etc/ansible/facts.d"
+    state: "directory"
+  become: True
+
+- name: "Insert custom fact file"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/ansible/facts.d/
+    mode: '0755'
+  with_fileglob:
+    - "{{ role_path }}/files/*.fact"
+  become: True

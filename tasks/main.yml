@@ -1,0 +1,149 @@
+---
+# Install any prereq python modules on the ansible controller
+- name: Ensure we have all required python dependencies installed
+  include_tasks: install-controller-upgrade-prereqs.yml
+  args:
+    apply:
+      delegate_to: localhost
+      run_once: True
+      tags:
+        - install-controller-upgrade-prereqs
+
+# Set them to track nodes that succeed/fail during upgrade
+- name: Ensure the upgrade counters are defined
+  set_fact:
+    sf_failed: []
+    sf_upgraded: []
+    sf_already_upgraded: []
+  no_log: True
+
+# This loads a checker for the variables required by this role
+- name: Make sure requried variables are set/defined
+  include_tasks: verify-variables.yml
+
+# Query the cluster MVIP for its node name list and node ID list
+- name: Make sure we loaded the node info module
+  include_tasks: node-info.yml
+
+- name: Ensure we fail if we didn't collect cluster info
+  fail:
+    msg: "Can't upgrade! No names and node IDs found for this cluster: {{ sf_mgmt_virt_ip }}"
+  when: >
+    (sf_node_ids is undefined or sf_node_ids.keys()|length == 0) or
+    (sf_cluster_node_data is undefined or sf_cluster_node_data|length == 0)
+
+- name: Ensure we only upgrade cluster members (comparing cluster list to inventory)
+  fail:
+    msg: "Error: '{{ ansible_host }}' is not a member of the {{ sf_mgmt_virt_ip }} cluster!"
+  when: not (
+    (ansible_host and ansible_host|sf_get_node_info(sf_cluster_node_data, 'name')) or
+    (ansible_hostname and ansible_hostname|sf_get_node_info(sf_cluster_node_data, 'name'))
+    )
+
+- name: Make sure we verify whether all cluster nodes are to be upgraded
+  when: sf_node_ids.keys()|length > ansible_play_batch|length
+  block:
+    - set_fact:
+        main_upgrade_subset: True
+    - fail:
+        msg: >-
+          Cluster {{ sf_mgmt_virt_ip }} consists {{ sf_node_ids.keys()|length }} nodes but only {{ ansible_play_batch|length }} are for upgrade!
+          If subset upgrade is desired, please set variable sf_allow_cluster_subset_upgrade to True.
+      when: not sf_allow_cluster_subset_upgrade
+
+# We only need to do this once per cluster, so only letting one
+# node perform the operation, once (the controller)
+- name: Ensure we activate the Cluster Version upgrade process
+  block:
+    - include_tasks: start-cluster-upgrade.yml
+      args:
+        apply:
+          delegate_to: localhost
+          run_once: True
+          tags:
+            - start-cluster-upgrade
+  rescue:
+    - debug:
+        msg: "Handling restart of cluster upgrade"
+
+  always:
+    - fail:
+        msg: Error calling StartUpgrade API. Exiting upgrade!
+      when: sf_cluster_error is defined and sf_cluster_error
+
+    - debug:
+        msg: "Proceeding with upgrade of nodes in cluster"
+
+- set_fact:
+    sf_host_ssh_addr: "{{ hostvars[inventory_hostname]['ansible_env'].SSH_CONNECTION.split(' ')[2] }}"
+  when: hostvars[inventory_hostname]['ansible_env'].SSH_CONNECTION.split(' ')[2] is defined
+
+- set_fact:
+    sf_host_addr: "{{ sf_host_ssh_addr|sf_get_node_info(sf_cluster_node_data, 'mip') }}"
+    sf_host_name: "{{ sf_host_ssh_addr|sf_get_node_info(sf_cluster_node_data, 'name') }}"
+  when: sf_host_ssh_addr is defined and sf_host_ssh_addr
+
+- name: "Ensure we install v{{ sf_new_package_ver }} of SolidFire eSDS on the cluster nodes"
+  include_role:
+    name: nar_solidfire_sds_install
+    tasks_from: install-rpm.yml
+  when:
+    - sf_node_ids is not undefined
+
+- name: "Ensure we load the upgrade tasks for the cluster"
+  include_tasks: upgrade-node.yml
+  args:
+    apply:
+      delegate_to: "{{ sf_upgrade_node_MIP }}"
+      run_once: True
+      tags:
+        - upgrade-node
+  vars:
+    sf_upgrade_node: "{{ hostvars[node_label]['sf_host_name'] }}"
+    sf_upgrade_node_MIP: "{{ hostvars[node_label]['sf_host_addr'] }}"
+  loop_control:
+    loop_var: node_label
+  loop: "{{ ansible_play_hosts_all }}"
+  when: hostvars[node_label]['sf_host_name'] is defined
+
+# Show the nodes we upgraded successfully
+- name: Ensure we know how many nodes upgraded
+  debug:
+    msg: "Successfully upgraded nodes: {{ sf_upgraded }}"
+  when: sf_upgraded|length != 0
+
+# Show the nodes where the upgrade unexpectedly failed
+- name: Ensure we know how many nodes failed to upgrade
+  fail:
+    msg: "Node upgrades failed for {{ sf_failed }}"
+  when: sf_failed|length != 0
+
+- name: Ensure we didn't have issues with the inventory...
+  fail:
+    msg: "Error upgrading {{ inventory_hostname }}"
+  when: sf_failed|length == 0 and sf_upgraded|length == 0
+
+# Toggle the Cluster FinishUpgrade API _if_ all cluster members were upgraded
+# successfully. I.e. there are no nodes recorded in the sf_failed variable _and_
+# there _are_ nodes recorded in the sf_upgraded variable and the play batch count
+# is the same size as the sf_upgraded count (In the case of a cluster
+# error, both of those lists will be empty, and we definitely should NOT try to
+# toggle the cluster upgrade at that point!)
+- name: "Ensure we loaded upgrade switch logic for cluster: {{ sf_mgmt_virt_ip }}"
+  include_tasks: finish-cluster-upgrade.yml
+  args:
+    apply:
+      delegate_to: localhost
+      run_once: True
+      tags:
+        - finish-cluster-upgrade
+  when: >
+    (sf_cluster_error is undefined or
+    (sf_cluster_error is defined and not sf_cluster_error)) and
+    (sf_failed|length) == 0 and
+    (sf_upgraded|length) != 0 and
+    ((sf_upgraded|length) == (ansible_play_batch|length))
+
+- fail:
+    msg: "Error finishing the cluster upgrade!"
+  when: sf_cluster_error is defined and sf_cluster_error

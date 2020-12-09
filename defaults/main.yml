@@ -1,0 +1,143 @@
+# --------------------------------------------------------------------------
+# Playbook/Inventory variables. These definitely _need_ to be added/changed
+#
+# Commented out here since they should be specified in the user's
+# inventory/playbook or in the vars/main.yml file
+# --------------------------------------------------------------------------
+
+# Path to the RPM you're upgrading to
+#
+# Can be an URL, an absolute path on the ansible controller, or just the name of the RPM,
+# saved to the `nar_solidfire_sds_upgrade/files` directory
+#
+# Must be defined in the inventory or playbook, by the user
+#
+#solidfire_element_rpm: http://<hostname>>/<path>/solidfire-element-<version>-1.el{7,8}.x86_64.rpm
+
+# The virtual IP address for the cluster Management interface
+#
+# This variable must contain an IP address or a Fully Qualified Domain Name (FQDN) _if_
+# a properly configured DNS server can be reached from all members of the cluster.
+#
+# Must be defined by the user
+#
+#sf_mgmt_virt_ip: <mvip IP address>
+
+# The username for the specified/defined cluster administrator user
+#
+# Must be defined by the user
+#
+sf_cluster_admin_username: sfadmin
+
+# The password for the specified/defined cluster administrator user
+#
+# Must be defined by the user
+#
+#sf_cluster_admin_passwd: <cluster admin password>
+
+# -----------------------------------------------------------------
+# Upgrade management variables. Shouldn't change these!
+# -----------------------------------------------------------------
+
+# Setting this to 'True' will break the idempotent qualities of this role
+#
+# DO NOT change this unless you know what you're doing, or was told to modify
+# it by NetApp SolidFire support.
+i_want_to_break_idempotency: False
+
+# Timeout value when connecting to the SF Cluster APIs
+# I.e. how long the URI module will wait for the cluster/node API to respond
+#
+# DO NOT change this unless you know what you're doing, or was told to modify
+# it by NetApp SolidFire support.
+sf_cluster_connect_timeout: 20
+
+# The version of the API we're using for the current release of SolidFire eSDS
+
+# DO NOT change this unless you know what you're doing, or was told to modify
+# it by NetApp SolidFire support.
+sf_api_version: 12.2
+
+# The minimum RPM version this role requires
+#
+# DO NOT change this unless you know what you're doing, or was told to modify
+# it by NetApp SolidFire support.
+sf_min_required_version: '12.2.0.462'
+
+# By default, we do _NOT_ ignore cluster faults to place a node in Maintenance Mode
+#
+# DO NOT change this unless you know what you're doing, or was told to modify
+# it by NetApp SolidFire support.
+yes_i_want_to_ignore_cluster_faults: False
+
+# The amount of time the maintenance mode will remain active
+# unless it's disabled with the 'DisableMaintenanceMode' API call
+# After this timeout, the node will exit Maintenance Mode on its own
+# This is a fail-safe in case something goes wrong we can't defend
+# against in the role (network connectivity issues, etc)
+#
+# Uses HH:MM:SS (1 hour by default)
+#
+# Intentionally making it possible for someone to override this value
+# since it's possible they need more or less time in their environment
+#
+# DO NOT change this unless you know what you're doing, or was told to modify
+# it by NetApp SolidFire support.
+#
+sf_maint_mode_duration: "01:00:00"
+
+# The following 2 variables are used when polling the cluster for the maintenance mode status
+# Will let the upgrade of a node wait for 90 minutes per operation before failing
+#
+# Intentionally making it possible for a customer to override this value
+# since it's possible they need more or less time in their environment
+#
+# DO NOT change this unless you know what you're doing, or was told to modify
+# it by NetApp SolidFire support.
+#
+sf_wait_delay: 60
+sf_max_poll_attempts: 90
+
+# Defined here so they can be used by the node across imported tasks
+#
+# DO NOT change these, no matter what!
+#
+sf_cluster_nodes: None
+sf_node_ids: None
+sf_in_maintenance_mode: False
+sf_cluster_error: False
+sf_new_package_ver: None
+sf_current_package_ver: None
+
+# Used to load extra arguments for the PIP installer
+# Default is that there are no extra args
+#
+# DO NOT change this unless you know what you're doing, or was told to modify
+# it by NetApp SolidFire support.
+#
+sf_pip_extra_args: ""
+
+# Do we use proxies when connecting to the cluster members/mvip
+# (proxy settings must be defined on the target host(s))
+#
+# Proxy settings can be configured with a combination of ansible variables and
+# the `environment` ansible module
+#
+sf_use_proxy: False
+
+# Do we need to verify SSL/TLS Certificates
+#
+# The default is "True" because it is _not_ safe to install RPMs from unverified
+# sources!
+#
+# DO NOT change this unless you know what you're doing, you know the source is
+# reputable and/or was told to modify it by NetApp SolidFire support.
+#
+sf_validate_certs: True
+
+# By default, we will end the play if the node count in the inventory is smaller
+# than the node count for the cluster.  In the inverse case, nodes that are not
+# in the cluster, the role will log that they are not being upgraded and
+# upgrade the nodes that are in the cluster.
+#
+sf_allow_cluster_subset_upgrade: False

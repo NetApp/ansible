@@ -1,0 +1,28 @@
+---
+#
+# CPU check error messages
+sf_core_count_msg: "{{ ansible_hostname }} needs to have more than {{ sf_core_count }} CPUs"
+sf_cpu_manuf_msg: "{{ ansible_hostname }} has one or more unsupported CPUs (Manufacturer)"
+#
+# Operating system version/distro check error messages
+sf_os_distro_msg: >-
+  "{{ ansible_hostname }} does not have a supported OS installed ({{ ansible_distribution }})"
+sf_os_version_msg: >-
+  "Please upgrade {{ ansible_hostname }} to a supported version of {{ ansible_distribution }} (>= 7.6)"
+#
+# Network speed check error/failure messages
+sf_nic_mip_speed_msg: "One or more of the Management NICs did not report a valid speed"
+sf_nic_sip_speed_msg: "One or more of the Storage NICs did not report a valid speed"
+#
+# Storage check error/failure messages
+sf_storage_dev_count_msg: >-
+  "{{ ansible_hostname }} appears to have more devices configured for SolidFire use than physical devices on the node"
+sf_storage_data_count_msg: "Insufficient number of storage data devices configured"
+sf_storage_cache_count_msg: "Insufficient number of cache devices configured"
+sf_storage_cache_device_not_found_msg: >-
+  "Unable to locate one or more of the specified cache device(s) on {{ ansible_hostname }}"
+sf_storage_data_device_not_found_msg: >-
+  "Unable to locate one or more of the specified data device(s) on {{ ansible_hostname }}"
+sf_storage_not_enough_memory_msg: >-
+  "{{ ansible_hostname }} does not have enough physical memory installed (RAM) for its configured storage capacity"
+sf_fatal_error_msg: Failed one or more checks. Exiting!

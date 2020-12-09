@@ -1,0 +1,126 @@
+---
+# Using the block/rescue combination to let us loop until the node either fails
+# or we transition to the desired state
+- name: "Ensure we deactivate maintenance mode for {{ target_name }}/{{ target_MIP }}/ID:{{ target_id }}"
+  when: sf_in_maintenance_mode is undefined or sf_in_maintenance_mode
+  block:
+    - name: "Ensure Maintenance Mode is disabled for {{ target_name }}/{{ target_MIP }}/ID:{{ target_id }}"
+      failed_when: >
+        (sf_cluster_error is defined and sf_cluster_error) or (
+        target_id is not defined and
+        target_name.upper() != ansible_hostname.upper())
+      run_once: True
+      delegate_to: localhost
+      uri:
+        url: "https://{{ sf_mgmt_virt_ip }}:443/json-rpc/{{ sf_api_version }}"
+        method: POST
+        url_username: "{{ sf_cluster_admin_username }}"
+        url_password: "{{ sf_cluster_admin_passwd }}"
+        force_basic_auth: True
+        timeout: "{{ sf_cluster_connect_timeout }}"
+        body_format: json
+        body:
+          method: 'DisableMaintenanceMode'
+          params:
+            nodes:
+              - "{{ target_id }}"
+        validate_certs: "{{ sf_validate_certs | bool }}"
+        use_proxy: "{{ sf_use_proxy | bool }}"
+        status_code: 200
+        force: True
+        follow_redirects: safe
+      register: dRequest
+
+    # No point in going through the status checks if maint. mode has been
+    # changed to what we need it to be for the node already
+    - name: "Ensure we save changes to status for {{ target_name }}/{{ target_MIP }}/ID:{{ target_id }}"
+      set_fact:
+        sf_in_maintenance_mode: False
+        sf_attempts: 0
+      when: >
+        dRequest.json.result is not undefined and
+        dRequest.json.result.currentMode is not undefined and
+        dRequest.json.result.currentMode == 'Disabled'
+
+    # Using the same checks for both the Enable and Disable maintenance mode
+    # operation, so it's in a separate, included, task list
+    - name: "Ensure we load status checks for {{ target_name }}/{{ target_MIP }}/ID:{{ target_id }}"
+      when: sf_in_maintenance_mode
+      include_tasks: check-node-status.yml
+      args:
+        apply:
+          delegate_to: "{{ target_MIP }}"
+          run_once: True
+          tags:
+            - check-node-status
+      vars:
+        request: "{{ dRequest }}"
+        target_status: "Disabled"
+
+    - name: "Ensure we loop if maintenance mode isn't disabled yet for {{ target_name }}/{{ target_MIP }}/ID:{{ target_id }}"
+      fail:
+        msg: "Retry: Need to wait until {{ target_name }}/{{ target_MIP }}/ID:{{ target_id }} exits maintenance mode"
+      when: sf_in_maintenance_mode
+
+  # Using the block/rescue combination to let us loop until the node either fails
+  # or we transition to the desired state
+  rescue:
+    - name: "Ensure we exit if there are unexpected cluster errors for {{ target_name }}/{{ target_MIP }}/ID:{{ target_id }}"
+      fail:
+        msg: "Error: Cannot process upgrade on {{ target_name }}/{{ target_MIP }}/ID:{{ target_id }}!"
+      when: (sf_cluster_error is defined and sf_cluster_error)
+
+    # Future proofing
+    - name: Ensure we handle expected 500 statuses from the API
+      set_fact:
+        sf_in_maintenance_mode: False
+      when: >
+        dRequest.json.error is defined and
+        dRequest.json.error.name is defined and
+        dRequest.json.error.name == 'xAlreadyInRequestedMode'
+
+    # Informational message.
+    #
+    # We fail the node by skipping through to the end of the
+    # upgrade-node tasks after this
+    - debug:
+        msg: "Can't upgrade {{ target_name }}/{{ target_MIP }}/ID:{{ target_id }}. Something went wrong!"
+      when: >
+        not sf_in_maintenance_mode and sf_cluster_error
+
+    # Increment our retry iteration counter
+    - set_fact:
+        sf_attempts: "{{ sf_attempts | default(0) | int + 1 }}"
+      when: sf_in_maintenance_mode and not sf_cluster_error
+      no_log: True
+
+    # Have to give up. We've waited for wait_time * number of attempts
+    # By default, this would be 90 minutes for the DisableMaintenanceMode operation,
+    # on one node, alone
+    - fail:
+        msg: "Number of attempts exceed {{ sf_max_poll_attempts }}"
+      when: >
+        sf_in_maintenance_mode and not sf_cluster_error and
+        (sf_attempts | int) > (sf_max_poll_attempts | int)
+
+    - name: "Ensure we need to wait ({{ sf_attempts }} of {{ sf_max_poll_attempts }})"
+      set_fact:
+        sf_still_waiting: "{{ (sf_in_maintenance_mode and
+          (sf_attempts|int) <= (sf_max_poll_attempts|int)) }}"
+      no_log: True
+
+    - pause:
+        prompt: "Wait {{ sf_wait_delay }} secs to retry DisableMaintenanceMode on {{ target_name }}/{{ target_MIP }}/ID:{{ target_id }}"
+        seconds: "{{ sf_wait_delay }}"
+      when: not sf_cluster_error and sf_in_maintenance_mode and sf_still_waiting
+      no_log: True
+
+    # This is how we loop on the DisableMaintenanceMode API check until
+    # the node has exited the transition. We call ourselves recursively
+    # for up to sf_max_poll_attempts iterations
+    - name: Ensure we need to (re)check status for DeactivateMaintenanceMode
+      when: >
+        sf_in_maintenance_mode and sf_still_waiting and
+        (sf_cluster_error is undefined or
+        (sf_cluster_error is not undefined and not sf_cluster_error))
+      include_tasks: deactivate-node-maintenance-mode.yml

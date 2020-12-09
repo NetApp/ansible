@@ -1,0 +1,31 @@
+---
+# This will only be called if the node was able to enter Maintenance Mode
+# successfully
+- name: "Make sure we upgrade to SolidFire eSDS v{{ sf_new_package_ver }} on {{ target_name }}/{{ target_MIP }}"
+  run_once: True
+  become: True
+  when: >
+    sf_in_maintenance_mode is not undefined and
+    sf_in_maintenance_mode
+  systemd:
+    daemon-reload: True
+    name: solidfire
+    state: restarted
+  failed_when: >
+    sf_in_maintenance_mode is undefined or
+    (sf_in_maintenance_mode is defined and not sf_in_maintenance_mode)
+
+- pause:
+    prompt: "Letting upgrade on {{ target_name }}/{{ target_MIP }} to v{{ sf_new_package_ver }} proceed..."
+    echo: False
+    seconds: "{{ sf_wait_delay }}"
+
+- name: "Make sure the service is upgraded and started on {{ target_name }}/{{ target_MIP }}"
+  run_once: True
+  become: True
+  command: systemctl is-active solidfire
+  register: systemd_status
+
+- fail:
+    msg: "Service failed to start properly..."
+  when: systemd_status.rc != 0 and systemd_status.stdout in 'active'

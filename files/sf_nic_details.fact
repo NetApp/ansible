@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# This gathers NIC details for use in custom facts
+
+""":"
+# Find an available python without depending on 'env'
+for cmd in python3 python python2; do
+   command -v > /dev/null $cmd && exec $cmd $0 "$@"
+done
+exit 2
+":"""
+from __future__ import print_function
+import json
+import subprocess
+
+cmd = 'for nic in $(ls -1d /sys/class/net/*/device | cut -d / -f5 | sort -u); do echo "name: ${nic}" && ethtool -i $nic; echo; done'
+p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+ret = p.wait()
+if ret != 0:
+    exit(1)
+
+stdout = p.stdout.read()
+nics = []
+current_nic = {}
+for line in stdout.split(b"\n"):
+    if not line:
+        continue
+    line = line.decode()
+    key, value = line.split(": ", 1)
+    key = key.replace("-", "_") # Replace dash with underscore so the keys are more JSON friendly
+    value = value.strip() # Remove excess whitespace
+
+    if key == "name" and current_nic:
+        nics.append(current_nic)
+        current_nic = {}
+
+    current_nic[key] = value
+
+if current_nic:
+    nics.append(current_nic)
+
+print(json.dumps(nics))

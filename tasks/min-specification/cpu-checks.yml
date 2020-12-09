@@ -1,0 +1,34 @@
+---
+- set_fact:
+    sf_cpu_count_error: False
+    sf_cpu_manuf_error: False
+  no_log: True
+
+# Check the required CPU (Core) count
+- name: Ensure we fail if we do not have the minimum number of CPUs
+  set_fact:
+    sf_cpu_count_error: True
+  when: >
+    (sf_hcl_check is undefined or
+    (sf_hcl_check is defined and sf_hcl_check )) and (
+    sf_node_facts['processor'] is undefined or
+    sf_node_facts['processor_vcpus']|int < sf_core_count|int)
+  tags:
+    - min_cpu_checks
+  no_log: True
+
+# Check the Manufacturer of the CPU(s)
+- name: Ensure we fail if we have anything other than supported CPUs
+  set_fact:
+    sf_cpu_manuf_error: True
+  when: >
+    (sf_hcl_check is undefined or
+    (sf_hcl_check is defined and sf_hcl_check)) and (
+    sf_node_facts['processor'] is undefined or
+    sf_cpu_manufacturer not in cpu_manuf)
+  loop_control:
+    loop_var: cpu_manuf
+  loop: "{{ sf_node_facts['processor'][1::3] }}"
+  tags:
+    - min_cpu_checks
+  no_log: True

@@ -1,0 +1,8 @@
+---
+# Removes directory housing custom facts scripts
+
+- name: "Ensure custom fact directory is removed"
+  file:
+    path: "/etc/ansible/facts.d"
+    state: absent
+  become: True

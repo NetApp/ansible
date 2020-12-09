@@ -1,0 +1,45 @@
+---
+#
+# We finish the cluster node toggle at the end of the process,
+# IF all of the nodes in the inventory were successfully upgraded
+#
+- name: Ensure we finalize the Cluster upgrade toggle
+  delegate_to: localhost
+  run_once: True
+  block:
+    - name: "Ensure we finalize the Cluster upgrade toggle"
+      uri:
+        url: "https://{{ sf_mgmt_virt_ip }}:443/json-rpc/{{ sf_api_version }}"
+        method: POST
+        url_username: "{{ sf_cluster_admin_username }}"
+        url_password: "{{ sf_cluster_admin_passwd }}"
+        force_basic_auth: True
+        timeout: "{{ sf_cluster_connect_timeout }}"
+        body_format: json
+        body:
+          method: 'FinishUpgrade'
+        return_content: True
+        validate_certs: "{{ sf_validate_certs | bool }}"
+        use_proxy: "{{ sf_use_proxy | bool }}"
+        force: True
+        follow_redirects: safe
+      register: request
+
+    - fail:
+        msg: "FinishUpgrade failed for cluster {{ sf_mgmt_virt_ip }} - {{ request.json.error.message }}"
+      when: >
+        request.json.error is defined and
+        request.json.error.message is defined
+
+  rescue:
+    - set_fact:
+        sf_cluster_error: True
+      when: >
+        request.json.error is defined and (not main_upgrade_subset or
+        (request.json.error.message is defined and
+         request.json.error.message != "All nodes must be at the same version to complete an upgrade"))
+
+- debug:
+    msg: "Upgrade toggle for {{ sf_mgmt_virt_ip }} is complete"
+  when: request.json.result is not undefined and
+    not request.json.result

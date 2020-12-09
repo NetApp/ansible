@@ -1,0 +1,71 @@
+---
+- name: Ensure the URL path to the RPM/package is clean
+  set_fact:
+    # Leave this Jinja2 variable handler be. It's fixing potential issues
+    # with the received URI or file name that makes it difficult to install
+    # (extra single/double quotes)
+    solidfire_element_rpm_path: >-
+      {% if solidfire_element_rpm is not match('http|ftp') %}
+      {{ na_sf_filename|trim() }}
+      {% else %}{{ solidfire_element_rpm
+      |regex_replace("'", "")
+      |regex_replace('"','')
+      |regex_replace("\s+", '')
+      |trim() }}
+      {% endif %}
+  when: >
+    solidfire_element_rpm_path is undefined and
+    (solidfire_element_rpm is defined and
+    solidfire_element_rpm)
+
+- name: Ensure the file path to the RPM is clean
+  # This is also fixing potential issues with the received URI or file name
+  # that makes it difficult to install. I.e. extra CR/LF, LF, whitespace
+  set_fact:
+    solidfire_element_rpm_path: '{{ solidfire_element_rpm_path|regex_replace("\s+","") }}'
+
+- name: Make sure we know where we're installing from
+  debug:
+    msg: "Installing from: '{{ solidfire_element_rpm_path }}'"
+
+- name: Ensure local copy of RPM when not using FTP/HTTP source
+  when: >
+    solidfire_element_rpm_path is not undefined and
+    solidfire_element_rpm_path is not match( 'http|ftp' )
+  block:
+    - name: "Make sure the NetApp eSDS RPM will be available"
+      copy:
+        src: "{{ solidfire_element_rpm }}"
+        dest: "{{ solidfire_element_rpm_path }}"
+
+    - name: Ensure the file was downloaded
+      stat:
+        path: "{{ solidfire_element_rpm_path }}"
+      register: sf_downloaded
+
+    - fail:
+        msg: "Error: Unable to locate the RPM file on {{ ansible_hostname }}!"
+      when: not sf_downloaded.stat.exists
+
+- name: Ensure we have somewhere to install from
+  fail:
+    msg: No valid path to the eSDS package RPM found
+  when: solidfire_element_rpm_path is undefined or
+    not solidfire_element_rpm_path
+
+- name: Ensure the NetApp eSDS package is installed on the host
+  when: solidfire_element_rpm_path is defined
+  yum:
+    name: "{{ solidfire_element_rpm_path }}"
+    validate_certs: "{{ na_sf_validate_certs }}"
+    disable_gpg_check: True
+    state: present
+    skip_broken: False
+  register: rpm_output
+  failed_when: >
+    solidfire_element_rpm_path is undefined or
+    (rpm_output is defined and
+      (rpm_output.rc is defined and
+        rpm_output.rc|int != 0) or
+      (rpm_output.rc is undefined))
+  become: True

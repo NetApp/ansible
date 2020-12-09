@@ -1,0 +1,28 @@
+---
+- name: Making sure we test the distribution and version
+  set_fact:
+    na_sf_allow_derivatives: "{{ na_sf_allow_derivatives | default(False) }}"
+  no_log: True
+
+# We're going to invert the OS support check
+- name: Ensure we're not installing on an unsupported Operating System or version
+  set_fact:
+    sf_os_unsupported: True
+    sf_os_version_error: False
+
+# Make sure the OS is NOT a supported distribution (or derivative)
+- set_fact:
+    sf_os_unsupported: False
+  when: sf_node_facts['distribution'] in sf_primary_distro
+
+# When the distro is CentOS or RHEL and we allow derivative OS's
+- set_fact:
+    sf_os_unsupported: False
+  when: na_sf_allow_derivatives and sf_node_facts['distribution'] in sf_supported_distro_list
+
+# Make sure we're on a supported OS release
+- name: Ensure we're not installing on an unsupported server Operating System version
+  set_fact:
+    sf_os_version_error: True
+  when: >
+    sf_node_facts['distribution_version'] is not version(sf_os_min_version, '>=')

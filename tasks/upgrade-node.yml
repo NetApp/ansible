@@ -1,0 +1,120 @@
+---
+- name: "Retrieve installed package info again for {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }}"
+  include_tasks: node-info.yml
+ 
+- name: Make sure we skip a node if it was upgraded already
+  delegate_to: "{{ sf_upgrade_node_MIP }}"
+  run_once: True
+  set_fact:
+    sf_already_upgraded: "{{ sf_already_upgraded + [sf_upgrade_node] }}"
+    sf_upgraded: "{{ sf_upgraded + [sf_upgrade_node] }}"
+  when: sf_new_package_ver in sf_upgrade_node|sf_get_node_info(sf_cluster_node_data, 'softwareVersion') and
+    sf_upgrade_node not in sf_already_upgraded
+    and sf_upgrade_node not in sf_upgraded
+
+- debug:
+    msg: "sf_already_upgraded: {{ sf_already_upgraded }}, sf_upgraded: {{ sf_upgraded }}"
+
+- name: "Make sure we upgrade {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }} to {{ sf_new_package_ver }}"
+  when: sf_upgrade_node not in sf_already_upgraded
+  block:
+    # This is where the per-node rolling upgrade is being performed
+    - name: "Ensure we do a rolling upgrade in Maintenance Mode for {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }}"
+      delegate_to: "{{ sf_upgrade_node_MIP }}"
+      run_once: True
+      block:
+        - name: "Ensure we loaded the maintenance mode activation routine for {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }}"
+          when: not sf_in_maintenance_mode and not sf_cluster_error
+          include_tasks: activate-node-maintenance-mode.yml
+          args:
+            apply:
+              delegate_to: "{{ sf_upgrade_node_MIP }}"
+              run_once: True
+              tags:
+                - activate-node-maintenance-mode
+          vars:
+            target_name: "{{ sf_upgrade_node }}"
+            target_MIP: "{{ sf_upgrade_node_MIP }}"
+            target_SIP: "{{ sf_upgrade_node|sf_get_node_info(sf_cluster_node_data, 'sip') }}"
+            target_id: "{{ sf_node_ids[target_SIP] }}"
+            sf_timeout_updated: False
+
+        # Just being transparent
+        - name: "Make sure we know maint. mode status for {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }}: {{ sf_in_maintenance_mode }}"
+          debug:
+            var: sf_in_maintenance_mode
+
+        # Once the node is in Maintenance Mode, we do the actual node software upgrade
+        # Which, in the case of SolidFire eSDS, equals restarting the solidfire service after
+        # the new RPM has been installed.
+        - name: "Ensure we loaded upgrade routine for SolidFire eSDS service on {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }}"
+          when: sf_in_maintenance_mode and not sf_cluster_error
+          include_tasks: upgrade-service.yml
+          args:
+            apply:
+              delegate_to: "{{ sf_upgrade_node_MIP }}"
+              run_once: True
+              tags:
+                - upgrade-service
+          vars:
+            target_name: "{{ sf_upgrade_node }}"
+            target_MIP: "{{ sf_upgrade_node_MIP }}"
+
+        # Then we take the node _out_ of maintenance mode...
+        - name: "Ensure we loaded the deactivate Maintenance Mode routine for {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }}"
+          when: sf_in_maintenance_mode and not sf_cluster_error
+          include_tasks: deactivate-node-maintenance-mode.yml
+          args:
+            apply:
+              delegate_to: "{{ sf_upgrade_node_MIP }}"
+              run_once: True
+              tags:
+                - deactivate-node-maintenance-mode
+          vars:
+            target_name: "{{ sf_upgrade_node }}"
+            target_MIP: "{{ sf_upgrade_node_MIP }}"
+            target_SIP: "{{ sf_upgrade_node|sf_get_node_info(sf_cluster_node_data, 'sip') }}"
+            target_id: "{{ sf_node_ids[target_SIP] }}"
+            sf_timeout_updated: False
+
+        # ... clean up the downloaded RPM (if applicable) ...
+        - name: "Ensure we cleaned up any manually downloaded RPM file(s) on {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }}"
+          run_once: True
+          delegate_to: "{{ sf_upgrade_node_MIP }}"
+          file:
+            path: "{{ solidfire_element_rpm_path }}"
+            state: absent
+          when: >
+            solidfire_element_rpm is not undefined and
+            solidfire_element_rpm is not match("http|ftp")
+
+        # ... make sure we didn't have some sort of
+        #     fatal cluster error we can't deal with ...
+        - name: "Ensure we exit when we experience a cluster error on {{ sf_mgmt_virt_ip }}"
+          fail:
+            msg: "Error attempting to upgrade the {{ sf_mgmt_virt_ip }} cluster. Exiting!"
+          when: sf_cluster_error is defined and sf_cluster_error
+
+        # ... save all successfully upgraded cluster members to a list ...
+        - name: "Ensure we recorded that {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }} was upgraded successfully"
+          set_fact:
+            sf_upgraded: "{{ sf_upgraded + [ sf_upgrade_node ] }}"
+          when: sf_upgrade_node not in sf_upgraded
+
+        # ... let the person running the role know that this host (from the inventory)
+        #     was upgraded successfully ...
+        - debug:
+            msg: "Successful upgrade of {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }} completed. sf_upgraded: {{ sf_upgraded }}"
+
+      rescue:
+        # ... or we record that there was a problem for this node ...
+        - name: "Ensure we recorded that {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }} failed to upgrade"
+          set_fact:
+            sf_failed: "{{ sf_failed + [ sf_upgrade_node ] }}"
+          when: sf_upgrade_node not in sf_failed
+
+        # ... and tell someone that we didn't succeed in this case ...
+        - debug:
+            msg: "Failed upgrade of {{ sf_upgrade_node }}/{{ sf_upgrade_node_MIP }} recorded, sf_failed: {{ sf_failed }}"
+
+    # before we move on to the next cluster member (by exiting this task list)

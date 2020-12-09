@@ -1,0 +1,44 @@
+---
+- name: "Ensure we start the Cluster upgrade for {{ sf_mgmt_virt_ip }}"
+  uri:
+    url: "https://{{ sf_mgmt_virt_ip }}:443/json-rpc/{{ sf_api_version }}"
+    method: POST
+    url_username: "{{ sf_cluster_admin_username }}"
+    url_password: "{{ sf_cluster_admin_passwd }}"
+    force_basic_auth: True
+    timeout: "{{ sf_cluster_connect_timeout }}"
+    body_format: json
+    body:
+      method: 'StartUpgrade'
+      params:
+        packageName: "solidfire-rtfi-magnesium-patch2-{{ sf_new_package_ver }}"
+    return_content: True
+    validate_certs: "{{ sf_validate_certs | bool }}"
+    use_proxy: "{{ sf_use_proxy | bool }}"
+    force: True
+    follow_redirects: safe
+  register: request
+
+- fail:
+    msg: "INFO: Cluster upgrade is already in progress. Nothing more to do, continuing..."
+  when: request.json.error is defined
+    and request.json.error.name is defined and
+    request.json.error.name == 'xSoftwareInstallInProgress'
+
+- set_fact:
+    sf_cluster_error: True
+  when: request.status > 399 or (
+    request.json.error is defined and
+    request.json.error.name is defined)
+  no_log: True
+
+- debug:
+    msg: "Unexpected error when starting Cluster Upgrade: {{ request.json.error.name }}"
+  when: request.status > 399 or (
+    request.json.error is defined and
+    request.json.error.name is defined)
+
+- debug:
+    msg: "Cluster upgrade toggle initiated..."
+  when: request.json.result is not undefined and
+    not request.json.result and not sf_cluster_error

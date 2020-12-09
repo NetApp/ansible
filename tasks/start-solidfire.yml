@@ -1,0 +1,9 @@
+---
+- name: "Ensure the SolidFire eSDS service is {{ na_sf_sds_service_state }}"
+  become: True
+  systemd:
+    daemon_reload: yes
+    force: yes
+    name: solidfire
+    state: "{{ na_sf_sds_service_state }}"
+    enabled: yes
