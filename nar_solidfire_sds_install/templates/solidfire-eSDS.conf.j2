@@ -1,0 +1,13 @@
+schemaVersion: "2.0"
+
+network:
+  managementInterface: "{{ mgmt_iface }}"
+  storageInterface: "{{ storage_iface }}"
+dataDrives:
+{% for storage_device in storage_devices %}
+  - "{{ storage_device }}"
+{% endfor %}
+cacheDevices:
+{% for cache_device in cache_devices %}
+  - "{{ cache_device }}"
+{% endfor %}
