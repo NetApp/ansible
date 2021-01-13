@@ -1,16 +1,12 @@
-Role Name
-=========
-na_ots_deploy
-Create, configure and run the OTS deploy VM.
+# Role Name
+`na_ots_deploy`: Create, configure and run the OTS deploy VM.
 
-Requirements
-------------
-The Server that will host the deploy VM should be prepared according to ONTAP Select specifications with appropriate virtualization environment and storage and networking configured as required.a
+# Requirements
+The Server that will host the deploy VM should be prepared according to ONTAP Select specifications withing the appropriate virtualization environment and storage and networking configured as required.
 Ansible 2.7 or greater is needed to run this role.
 
-Role Variables
---------------
-
+# Role Variables
+```yaml
 target_vcenter_or_esxi_host: <Name or IP address of the target vCenter or esxi host>
 host_login: <login for the vcenter or esxi host given above>
 ovf_path: <path to the OVF file to install the deploy VM>
@@ -26,14 +22,9 @@ deploy_netMask: <Netmask>
 deploy_primaryDNS: <Primary DNS IP address for the Deploy VM>
 deploy_secondaryDNS: <Optional secondary DNS IP address>
 deploy_searchDomains: <Search Domain>
-
-Dependencies
-------------
-
-
-Example Playbook
-----------------
 ```
+# Example Playbook
+```yaml
 ---
 - name: Create ONTAP Select Deploy VM from OVA (ESXi)
   hosts: "{{ target_vcenter_or_esxi_host }}" # Entry in Ansible 'hosts' file
@@ -45,11 +36,9 @@ Example Playbook
   roles:
     - na_ots_deploy
 ```
-
-Example Global file
--------------------
-Using global file for variable helps.  Sample below
-```
+# Example Global file
+Using a global file for variables helps. Sample below:
+```yaml
 target_vcenter_or_esxi_host: "10.xxx.xx.xx"
 host_login: "yourlogin@yourlab.local"
 ovf_path: "/run/deploy/ovapath/ONTAPdeploy.ova"
@@ -67,15 +56,7 @@ deploy_primaryDNS: "10.xxx.xx.xx"
 deploy_secondaryDNS: ""
 deploy_searchDomains: "your.search.domain.com"
 ```
-
-
-
-License
--------
-
+# License
 BSD
-
-Author Information
-------------------
-
+# Author Information
 NetApp
