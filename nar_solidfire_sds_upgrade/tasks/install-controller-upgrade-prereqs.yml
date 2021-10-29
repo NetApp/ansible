@@ -1,8 +1,0 @@
----
-# Installing required libraries before running any tests/validations
-# that needs it/them
-- name: Ensure the system has the required python libraries
-  pip:
-    name: ['netaddr>=0.7.20', 'dnspython>=1.16.0']
-    state: present
-    extra_args: "{{ sf_pip_extra_args }}"
