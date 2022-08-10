@@ -1,9 +1,0 @@
-{#- This Jinja template compiles a list of hostgroups from the eseries_host_object variable #}
-
-{%- set hostgroups=[] %}
-{%- for host in eseries_host_object %}
-  {%- if "group" in (host.keys()|list) and host["group"] not in hostgroups and
-         ("state" not in (host.keys()|list) or host["state"] == "present") and hostgroups.append(host["group"]) %}
-  {%- endif %}
-{%- endfor %}
-{{ hostgroups }}
